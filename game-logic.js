@@ -462,11 +462,19 @@ function nextTurn() {
     
     const netResult = income - maintenance;
     const oldMoney = window.gameState.money;
+    const oldPopulation = window.gameState.population;
+    const oldHappiness = window.gameState.happiness;
     
     window.gameState.money += netResult;
     
     // Sørg for at penge ikke går under 0
     window.gameState.money = Math.max(0, window.gameState.money);
+    
+    // Proces befolknings-ændringer (hvis population system er tilgængeligt)
+    let populationData = null;
+    if (window.populationManager) {
+        populationData = populationManager.processPopulationTurn();
+    }
     
     // Vis feedback
     let message = `År ${window.gameState.year}\n`;
@@ -474,10 +482,26 @@ function nextTurn() {
     message += `Indtægt: ${income} kr\n`;
     message += `Udgifter: ${maintenance} kr\n`;
     message += `Netto: ${netResult} kr\n`;
-    message += `Penge: ${oldMoney} → ${window.gameState.money} kr`;
+    message += `Penge: ${oldMoney} → ${window.gameState.money} kr\n`;
+    
+    // Tilføj befolknings-information
+    if (populationData) {
+        message += `\n👥 BEFOLKNING:\n`;
+        message += `Befolkning: ${oldPopulation} → ${window.gameState.population}`;
+        if (populationData.populationGrowth !== 0) {
+            message += ` (${populationData.populationGrowth > 0 ? '+' : ''}${populationData.populationGrowth})`;
+        }
+        message += `\nTilfredshed: ${oldHappiness}% → ${window.gameState.happiness}%`;
+        
+        if (populationData.populationGrowth > 0) {
+            message += `\n✅ Din by vokser!`;
+        } else if (populationData.populationGrowth < 0) {
+            message += `\n⚠️ Borgere flytter væk!`;
+        }
+    }
     
     if (netResult < 0) {
-        message += `\n⚠️ Du har underskud! Byg flere boliger for at øge indtægten.`;
+        message += `\n💸 Du har underskud! Byg flere boliger for at øge indtægten.`;
     }
     
     updateUI();

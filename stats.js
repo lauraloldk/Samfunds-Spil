@@ -172,6 +172,102 @@ function showStatsModal(gameStats) {
     document.body.appendChild(modal);
 }
 
+// Vis detaljerede befolknings-statistikker
+function showPopulationDetails() {
+    if (!window.populationManager) {
+        alert('Befolknings-systemet er ikke indlæst endnu.');
+        return;
+    }
+
+    const stats = populationManager.getPopulationStats();
+    
+    const modal = document.createElement('div');
+    modal.className = 'stats-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>👥 Detaljerede Befolknings-statistikker</h2>
+                <button class="close-btn" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="population-details">
+                    <h3>📊 Nuværende Status</h3>
+                    <p><strong>Befolkning:</strong> ${stats.currentPopulation} borgere</p>
+                    <p><strong>Samlet Tilfredshed:</strong> ${stats.happiness}%</p>
+                    <p><strong>Aktive Events:</strong> ${stats.activeEvents.length}</p>
+                </div>
+                
+                <div class="population-details">
+                    <h3>🏘️ Tilfredshedsfaktorer</h3>
+                    <div class="satisfaction-grid">
+                        <div class="satisfaction-item">
+                            <div>🏠 Boliger</div>
+                            <div class="satisfaction-value ${getSatisfactionClass(stats.satisfactionFactors.housing)}">
+                                ${Math.round(stats.satisfactionFactors.housing)}%
+                            </div>
+                        </div>
+                        <div class="satisfaction-item">
+                            <div>🛣️ Veje</div>
+                            <div class="satisfaction-value ${getSatisfactionClass(stats.satisfactionFactors.roads)}">
+                                ${Math.round(stats.satisfactionFactors.roads)}%
+                            </div>
+                        </div>
+                        <div class="satisfaction-item">
+                            <div>⚡ Strøm</div>
+                            <div class="satisfaction-value ${getSatisfactionClass(stats.satisfactionFactors.power)}">
+                                ${Math.round(stats.satisfactionFactors.power)}%
+                            </div>
+                        </div>
+                        <div class="satisfaction-item">
+                            <div>🏥 Sundhed</div>
+                            <div class="satisfaction-value ${getSatisfactionClass(stats.satisfactionFactors.health)}">
+                                ${Math.round(stats.satisfactionFactors.health)}%
+                            </div>
+                        </div>
+                        <div class="satisfaction-item">
+                            <div>📚 Uddannelse</div>
+                            <div class="satisfaction-value ${getSatisfactionClass(stats.satisfactionFactors.education)}">
+                                ${Math.round(stats.satisfactionFactors.education)}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                ${stats.activeEvents.length > 0 ? `
+                    <div class="population-details">
+                        <h3>🎭 Aktive Events</h3>
+                        ${stats.activeEvents.map(event => `
+                            <p><strong>${event.name}</strong></p>
+                            <p style="font-size: 0.9em;">${event.description}</p>
+                            <p style="font-size: 0.8em; color: #666;">Varighed: ${event.remainingDuration} år tilbage</p>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                
+                ${stats.history.length > 0 ? `
+                    <div class="population-details">
+                        <h3>📈 Befolknings-historie (Sidste ${stats.history.length} år)</h3>
+                        ${stats.history.slice(-5).map(entry => `
+                            <p style="font-size: 0.9em;">
+                                År ${entry.year}: ${entry.population} borgere, ${entry.happiness}% tilfredshed
+                            </p>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Hjælpefunktion til at få satisfaction class
+function getSatisfactionClass(value) {
+    if (value >= 70) return 'satisfaction-good';
+    if (value >= 40) return 'satisfaction-medium';
+    return 'satisfaction-bad';
+}
+
 // CSS til achievements og stats modal
 const statsCSS = `
     .achievement-notification {
@@ -259,6 +355,41 @@ const statsCSS = `
         padding-top: 20px;
         border-top: 1px solid #eee;
     }
+
+    .population-details {
+        margin-bottom: 20px;
+    }
+
+    .satisfaction-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .satisfaction-item {
+        background: #f1f1f1;
+        padding: 10px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .satisfaction-value {
+        font-weight: bold;
+    }
+
+    .satisfaction-good {
+        color: #27ae60;
+    }
+
+    .satisfaction-medium {
+        color: #f39c12;
+    }
+
+    .satisfaction-bad {
+        color: #e74c3c;
+    }
 `;
 
 // Tilføj CSS til head
@@ -269,6 +400,7 @@ document.head.appendChild(styleSheet);
 // Eksporter til global scope
 window.GameStats = GameStats;
 window.showStatsModal = showStatsModal;
+window.showPopulationDetails = showPopulationDetails;
 
 // Initialiser statistik-siden
 function initializeStats() {
@@ -379,3 +511,4 @@ function updateStatsPage() {
 // Eksporter funktioner
 window.initializeStats = initializeStats;
 window.updateStatsPage = updateStatsPage;
+window.showPopulationDetails = showPopulationDetails;
