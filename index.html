@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Samfunds Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+
+        .resources {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .resource {
+            background: #3498db;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            min-width: 150px;
+        }
+
+        .resource-label {
+            display: block;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .city-view {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .buildings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .building-slot {
+            aspect-ratio: 1;
+            border: 2px dashed #bdc3c7;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .building-slot:hover {
+            border-color: #3498db;
+            background: rgba(52, 152, 219, 0.1);
+        }
+
+        .empty-slot {
+            color: #7f8c8d;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .building {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        .building.house { background: #e74c3c; }
+        .building.powerplant { background: #f39c12; }
+        .building.hospital { background: #27ae60; }
+        .building.school { background: #9b59b6; }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .actions-panel, .status-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .build-btn {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 10px;
+            background: #3498db;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .build-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .build-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-good { color: #27ae60; font-weight: bold; }
+        .status-bad { color: #e74c3c; font-weight: bold; }
+        .status-neutral { color: #f39c12; font-weight: bold; }
+
+        @media (max-width: 768px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+            
+            .resources {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <h1>🏛️ Samfunds Simulator</h1>
+            <div class="resources">
+                <div class="resource">
+                    <span class="resource-label">💰 Penge</span>
+                    <span id="money">10000</span> kr
+                </div>
+                <div class="resource">
+                    <span class="resource-label">👥 Befolkning</span>
+                    <span id="population">100</span>
+                </div>
+                <div class="resource">
+                    <span class="resource-label">😊 Tilfredshed</span>
+                    <span id="happiness">75</span>%
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="city-view">
+                <h2>🏙️ Din By</h2>
+                <div class="buildings-grid">
+                    <div class="building-slot" id="slot-1">
+                        <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                    </div>
+                    <div class="building-slot" id="slot-2">
+                        <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                    </div>
+                    <div class="building-slot" id="slot-3">
+                        <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                    </div>
+                    <div class="building-slot" id="slot-4">
+                        <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                    </div>
+                    <div class="building-slot" id="slot-5">
+                        <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                    </div>
+                    <div class="building-slot" id="slot-6">
+                        <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="actions-panel">
+                    <h3>🏗️ Byg</h3>
+                    <button class="build-btn" onclick="selectBuilding('house')">
+                        🏠 Hus (500 kr)<br>
+                        <small>+10 befolkning</small>
+                    </button>
+                    <button class="build-btn" onclick="selectBuilding('powerplant')">
+                        ⚡ Kraftværk (2000 kr)<br>
+                        <small>Giver strøm</small>
+                    </button>
+                    <button class="build-btn" onclick="selectBuilding('hospital')">
+                        🏥 Hospital (3000 kr)<br>
+                        <small>Forbedrer sundhed</small>
+                    </button>
+                    <button class="build-btn" onclick="selectBuilding('school')">
+                        🏫 Skole (1500 kr)<br>
+                        <small>Giver uddannelse</small>
+                    </button>
+                </div>
+
+                <div class="status-panel">
+                    <h3>📊 Status</h3>
+                    <div class="status-item">
+                        <span>⚡ Strøm:</span>
+                        <span id="power-status" class="status-bad">Ingen</span>
+                    </div>
+                    <div class="status-item">
+                        <span>🏥 Sundhed:</span>
+                        <span id="health-status" class="status-bad">Dårlig</span>
+                    </div>
+                    <div class="status-item">
+                        <span>📚 Uddannelse:</span>
+                        <span id="education-status" class="status-bad">Ingen</span>
+                    </div>
+                    <div class="status-item">
+                        <span>🏠 Boliger:</span>
+                        <span id="housing-status" class="status-bad">Få</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="gamedata.js"></script>
+    <script src="stats.js"></script>
+    <script>
+        // Basis spil logik
+        let selectedBuilding = null;
+        let gameState = {
+            money: 10000,
+            population: 100,
+            happiness: 75,
+            buildings: {}
+        };
+
+        // Vælg bygning type
+        function selectBuilding(type) {
+            selectedBuilding = type;
+            document.querySelectorAll('.build-btn').forEach(btn => {
+                btn.style.background = '#3498db';
+            });
+            event.target.style.background = '#27ae60';
+        }
+
+        // Byg bygning på slot
+        function buildOnSlot(slotId) {
+            if (!selectedBuilding) {
+                alert('Vælg først en bygning type!');
+                return;
+            }
+
+            const costs = {
+                house: 500,
+                powerplant: 2000,
+                hospital: 3000,
+                school: 1500
+            };
+
+            if (gameState.money < costs[selectedBuilding]) {
+                alert('Ikke nok penge!');
+                return;
+            }
+
+            // Byg bygningen
+            gameState.money -= costs[selectedBuilding];
+            gameState.buildings[slotId] = selectedBuilding;
+
+            // Opdater UI
+            const slot = document.getElementById(slotId);
+            const names = {
+                house: '🏠 Hus',
+                powerplant: '⚡ Kraftværk',
+                hospital: '🏥 Hospital',
+                school: '🏫 Skole'
+            };
+
+            slot.innerHTML = `<div class="building ${selectedBuilding}">${names[selectedBuilding]}</div>`;
+            
+            // Opdater stats
+            updateStats();
+            selectedBuilding = null;
+            
+            // Reset knapper
+            document.querySelectorAll('.build-btn').forEach(btn => {
+                btn.style.background = '#3498db';
+            });
+        }
+
+        // Opdater statistikker
+        function updateStats() {
+            // Tæl bygninger
+            const buildings = Object.values(gameState.buildings);
+            const houseCount = buildings.filter(b => b === 'house').length;
+            const powerplantCount = buildings.filter(b => b === 'powerplant').length;
+            const hospitalCount = buildings.filter(b => b === 'hospital').length;
+            const schoolCount = buildings.filter(b => b === 'school').length;
+
+            // Opdater befolkning baseret på huse
+            gameState.population = 100 + (houseCount * 10);
+
+            // Opdater status
+            document.getElementById('power-status').textContent = powerplantCount > 0 ? 'God' : 'Ingen';
+            document.getElementById('power-status').className = powerplantCount > 0 ? 'status-good' : 'status-bad';
+
+            document.getElementById('health-status').textContent = hospitalCount > 0 ? 'God' : 'Dårlig';
+            document.getElementById('health-status').className = hospitalCount > 0 ? 'status-good' : 'status-bad';
+
+            document.getElementById('education-status').textContent = schoolCount > 0 ? 'God' : 'Ingen';
+            document.getElementById('education-status').className = schoolCount > 0 ? 'status-good' : 'status-bad';
+
+            document.getElementById('housing-status').textContent = houseCount > 2 ? 'Nok' : 'Få';
+            document.getElementById('housing-status').className = houseCount > 2 ? 'status-good' : 'status-bad';
+
+            // Beregn tilfredshed
+            let happiness = 50; // Base
+            if (powerplantCount > 0) happiness += 10;
+            if (hospitalCount > 0) happiness += 15;
+            if (schoolCount > 0) happiness += 10;
+            if (houseCount >= gameState.population / 15) happiness += 15;
+
+            gameState.happiness = Math.min(100, Math.max(0, happiness));
+
+            // Opdater UI
+            document.getElementById('money').textContent = gameState.money;
+            document.getElementById('population').textContent = gameState.population;
+            document.getElementById('happiness').textContent = gameState.happiness;
+        }
+
+        // Tilføj click handlers til slots
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.building-slot').forEach(slot => {
+                slot.addEventListener('click', function() {
+                    if (this.querySelector('.empty-slot')) {
+                        buildOnSlot(this.id);
+                    }
+                });
+            });
+        });
+
+        // Simpel økonomi - indtægter hver 5. sekund
+        setInterval(function() {
+            const houses = Object.values(gameState.buildings).filter(b => b === 'house').length;
+            const income = houses * 50; // 50 kr per hus
+            gameState.money += income;
+            updateStats();
+        }, 5000);
+    </script>
+</body>
+</html>
