@@ -336,6 +336,40 @@ class PopulationManager {
             roads: 0
         };
     }
+
+    // Beregn årlig pengebonus fra befolkning
+    calculatePopulationBonus() {
+        if (!window.gameState || window.gameState.population === 0) return 0;
+        
+        // Få nuværende tier
+        let currentTier = 0;
+        if (window.gameState.researchData && window.gameState.researchData.currentTier !== undefined) {
+            currentTier = window.gameState.researchData.currentTier;
+        } else if (window.researchSystem && window.researchSystem.researchData) {
+            currentTier = window.researchSystem.researchData.currentTier;
+        }
+        
+        // Tæl antal skoler
+        const schoolCount = Object.values(window.gameState.buildings).filter(b => b === 'school').length;
+        
+        // Beregn bonus per borger
+        const baseBonus = 1 + (2 * currentTier);
+        const schoolBonus = schoolCount * 2 * Math.max(currentTier, 1);
+        const bonusPerCitizen = baseBonus + schoolBonus;
+        
+        // Total befolkningsbonus
+        const totalBonus = window.gameState.population * bonusPerCitizen;
+        
+        return {
+            totalBonus,
+            bonusPerCitizen,
+            baseBonus,
+            schoolBonus,
+            currentTier,
+            schoolCount,
+            population: window.gameState.population
+        };
+    }
 }
 
 // CSS til event notifications

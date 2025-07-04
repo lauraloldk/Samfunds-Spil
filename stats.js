@@ -233,6 +233,26 @@ function showPopulationDetails() {
                     </div>
                 </div>
                 
+                <div class="population-details">
+                    <h3>💰 Årlig Befolkningsbonus</h3>
+                    ${(() => {
+                        const bonusInfo = window.populationManager.calculatePopulationBonus();
+                        return `
+                            <p><strong>Total årlig bonus:</strong> ${bonusInfo.totalBonus.toLocaleString()} kr</p>
+                            <p><strong>Bonus per borger:</strong> ${bonusInfo.bonusPerCitizen} kr</p>
+                            <div style="margin-left: 20px; font-size: 0.9em;">
+                                <p>• Tier ${bonusInfo.currentTier} base bonus: ${bonusInfo.baseBonus} kr/borger</p>
+                                ${bonusInfo.schoolCount > 0 ? `
+                                    <p>• Skole bonus: ${bonusInfo.schoolBonus} kr/borger (${bonusInfo.schoolCount} skole${bonusInfo.schoolCount > 1 ? 'r' : ''})</p>
+                                ` : '<p>• Ingen skole bonus (byg skoler for at øge bonussen)</p>'}
+                            </div>
+                            <p style="font-size: 0.8em; color: #666; margin-top: 10px;">
+                                <em>Bonusformula: [1 + (2 × Tier)] + [Antal_skoler × 2 × max(Tier, 1)] per borger</em>
+                            </p>
+                        `;
+                    })()}
+                </div>
+                
                 ${stats.activeEvents.length > 0 ? `
                     <div class="population-details">
                         <h3>🎭 Aktive Events</h3>
@@ -427,7 +447,27 @@ function updateStatsPage() {
     }
     
     // Beregn indtægt og udgifter
-    const income = gameState.population * 10;
+    const baseIncome = gameState.population * 10;
+    
+    // Beregn befolkningsbonus
+    let populationBonus = 0;
+    if (gameState.population > 0) {
+        let currentTier = 0;
+        if (window.gameState.researchData && window.gameState.researchData.currentTier !== undefined) {
+            currentTier = window.gameState.researchData.currentTier;
+        } else if (window.researchSystem && window.researchSystem.researchData) {
+            currentTier = window.researchSystem.researchData.currentTier;
+        }
+        
+        const schoolCount = Object.values(gameState.buildings).filter(b => b === 'school').length;
+        const baseBonus = 1 + (2 * currentTier);
+        const schoolBonus = schoolCount * 2 * Math.max(currentTier, 1);
+        const bonusPerCitizen = baseBonus + schoolBonus;
+        populationBonus = gameState.population * bonusPerCitizen;
+    }
+    
+    const totalIncome = baseIncome + populationBonus;
+    
     let expenses = 0;
     
     Object.values(gameState.buildings).forEach(buildingType => {
@@ -438,7 +478,7 @@ function updateStatsPage() {
     });
     
     if (statIncome) {
-        statIncome.textContent = income.toLocaleString() + ' kr';
+        statIncome.textContent = totalIncome.toLocaleString() + ' kr';
     }
     
     if (statExpenses) {
@@ -505,6 +545,31 @@ function updateStatsPage() {
     
     if (statSlots) {
         statSlots.textContent = gameState.maxBuildingSlots + '/12';
+    }
+    
+    // Opdater befolkningsbonus information
+    const statPopulationBonus = document.getElementById('stat-population-bonus');
+    if (statPopulationBonus) {
+        let currentTier = 0;
+        if (window.gameState.researchData && window.gameState.researchData.currentTier !== undefined) {
+            currentTier = window.gameState.researchData.currentTier;
+        } else if (window.researchSystem && window.researchSystem.researchData) {
+            currentTier = window.researchSystem.researchData.currentTier;
+        }
+        
+        const baseBonus = 1 + (2 * currentTier);
+        const schoolBonus = buildingCounts.school * 2 * Math.max(currentTier, 1);
+        const totalBonusPerCitizen = baseBonus + schoolBonus;
+        const totalBonus = gameState.population * totalBonusPerCitizen;
+        
+        let bonusText = `${totalBonus.toLocaleString()} kr total<br>`;
+        bonusText += `<small>Tier ${currentTier}: ${baseBonus} kr/borger`;
+        if (buildingCounts.school > 0) {
+            bonusText += ` + ${schoolBonus} kr/borger fra ${buildingCounts.school} skole(r)`;
+        }
+        bonusText += `</small>`;
+        
+        statPopulationBonus.innerHTML = bonusText;
     }
 }
 

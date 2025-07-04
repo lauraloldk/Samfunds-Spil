@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Befolkningsbonus</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #4caf50;
+        }
+        .test-input {
+            margin: 10px 0;
+        }
+        .test-input label {
+            display: inline-block;
+            width: 100px;
+            margin-right: 10px;
+        }
+        .test-input input {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        button {
+            background: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Befolkningsbonus System</h1>
+    
+    <div class="test-container">
+        <h2>Bonus Beregning Test</h2>
+        
+        <div class="test-input">
+            <label>Befolkning:</label>
+            <input type="number" id="population" value="100" min="0">
+        </div>
+        
+        <div class="test-input">
+            <label>Tier:</label>
+            <input type="number" id="tier" value="0" min="0" max="10">
+        </div>
+        
+        <div class="test-input">
+            <label>Antal Skoler:</label>
+            <input type="number" id="schools" value="0" min="0">
+        </div>
+        
+        <button onclick="calculateBonus()">Beregn Bonus</button>
+        <button onclick="runAllTests()">Kør Alle Tests</button>
+        
+        <div id="result"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Test Resultater</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        function calculateBonus() {
+            const population = parseInt(document.getElementById('population').value) || 0;
+            const tier = parseInt(document.getElementById('tier').value) || 0;
+            const schools = parseInt(document.getElementById('schools').value) || 0;
+            
+            // Beregn bonus
+            const baseBonus = 1 + (2 * tier);
+            const schoolBonus = schools * 2 * Math.max(tier, 1);
+            const bonusPerCitizen = baseBonus + schoolBonus;
+            const totalBonus = population * bonusPerCitizen;
+            
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <div class="test-result">
+                    <h3>Bonus Beregning:</h3>
+                    <p><strong>Base bonus per borger:</strong> 1 + (2 × ${tier}) = ${baseBonus} kr</p>
+                    <p><strong>Skole bonus per borger:</strong> ${schools} × 2 × max(${tier}, 1) = ${schoolBonus} kr</p>
+                    <p><strong>Total bonus per borger:</strong> ${baseBonus} + ${schoolBonus} = ${bonusPerCitizen} kr</p>
+                    <p><strong>Total årlig bonus:</strong> ${population} × ${bonusPerCitizen} = ${totalBonus.toLocaleString()} kr</p>
+                </div>
+            `;
+        }
+        
+        function runAllTests() {
+            const tests = [
+                { name: "Tier 0, ingen skoler", population: 100, tier: 0, schools: 0, expected: 100 },
+                { name: "Tier 1, ingen skoler", population: 100, tier: 1, schools: 0, expected: 300 },
+                { name: "Tier 2, ingen skoler", population: 100, tier: 2, schools: 0, expected: 500 },
+                { name: "Tier 0, 1 skole", population: 100, tier: 0, schools: 1, expected: 300 },
+                { name: "Tier 1, 1 skole", population: 100, tier: 1, schools: 1, expected: 700 },
+                { name: "Tier 2, 2 skoler", population: 100, tier: 2, schools: 2, expected: 1300 },
+                { name: "Tier 1, 50 borgere, 2 skoler", population: 50, tier: 1, schools: 2, expected: 550 },
+            ];
+            
+            let results = '<h3>Automatiske Test Resultater:</h3>';
+            
+            tests.forEach(test => {
+                const baseBonus = 1 + (2 * test.tier);
+                const schoolBonus = test.schools * 2 * Math.max(test.tier, 1);
+                const bonusPerCitizen = baseBonus + schoolBonus;
+                const totalBonus = test.population * bonusPerCitizen;
+                
+                const passed = totalBonus === test.expected;
+                const status = passed ? '✅ PASSED' : '❌ FAILED';
+                const color = passed ? '#4caf50' : '#f44336';
+                
+                results += `
+                    <div class="test-result" style="border-left-color: ${color}; background-color: ${passed ? '#e8f5e8' : '#ffeaea'};">
+                        <strong>${status}</strong> - ${test.name}<br>
+                        Forventet: ${test.expected.toLocaleString()} kr, Faktisk: ${totalBonus.toLocaleString()} kr<br>
+                        <small>Detaljer: ${test.population} borgere × (${baseBonus} + ${schoolBonus}) = ${totalBonus.toLocaleString()} kr</small>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('test-results').innerHTML = results;
+        }
+        
+        // Kør tests ved load
+        window.onload = function() {
+            calculateBonus();
+            runAllTests();
+        };
+    </script>
+</body>
+</html>

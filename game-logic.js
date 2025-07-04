@@ -442,6 +442,9 @@ function demolishBuilding(slotId) {
 
 // Næste runde
 function nextTurn() {
+    // Synkroniser research data
+    syncResearchData();
+    
     // Øg år
     window.gameState.year++;
     
@@ -449,8 +452,45 @@ function nextTurn() {
     const oldStamina = window.gameState.stamina;
     window.gameState.stamina = Math.min(10, window.gameState.stamina + 3);
     
-    // Beregn indkomst og udgifter
-    let income = window.gameState.population * 10; // 10 kr per borger
+    // Beregn indtægt og udgifter
+    let income = window.gameState.population * 10; // 10 kr per borger (basis)
+    
+    // Beregn årlig befolkningsbonus baseret på tier og skoler
+    let populationBonus = 0;
+    if (window.gameState.population > 0) {
+        // Få nuværende tier
+        let currentTier = 0;
+        if (window.gameState.researchData && window.gameState.researchData.currentTier !== undefined) {
+            currentTier = window.gameState.researchData.currentTier;
+        } else if (window.researchSystem && window.researchSystem.researchData) {
+            currentTier = window.researchSystem.researchData.currentTier;
+        }
+        
+        // Tæl antal skoler
+        let schoolCount = 0;
+        Object.values(window.gameState.buildings).forEach(buildingType => {
+            if (buildingType === 'school') {
+                schoolCount++;
+            }
+        });
+        
+        // Beregn bonus per borger
+        // Base bonus: 1 + (2 * tier)
+        const baseBonus = 1 + (2 * currentTier);
+        
+        // Skole bonus: (antal skoler * 2 * tier) - men minimum 0
+        const schoolBonus = schoolCount * 2 * Math.max(currentTier, 1);
+        
+        // Total bonus per borger
+        const bonusPerCitizen = baseBonus + schoolBonus;
+        
+        // Total befolkningsbonus
+        populationBonus = window.gameState.population * bonusPerCitizen;
+    }
+    
+    // Tilføj befolkningsbonus til indkomst
+    income += populationBonus;
+    
     let maintenance = 0;
     
     Object.values(window.gameState.buildings).forEach(buildingType => {
@@ -479,7 +519,37 @@ function nextTurn() {
     // Vis feedback
     let message = `År ${window.gameState.year}\n`;
     message += `Stamina: ${oldStamina} → ${window.gameState.stamina}\n`;
-    message += `Indtægt: ${income} kr\n`;
+    message += `Basis indtægt: ${window.gameState.population * 10} kr (${window.gameState.population} borgere × 10 kr)\n`;
+    
+    if (populationBonus > 0) {
+        // Få nuværende tier for feedback
+        let currentTier = 0;
+        if (window.gameState.researchData && window.gameState.researchData.currentTier !== undefined) {
+            currentTier = window.gameState.researchData.currentTier;
+        } else if (window.researchSystem && window.researchSystem.researchData) {
+            currentTier = window.researchSystem.researchData.currentTier;
+        }
+        
+        // Tæl antal skoler
+        let schoolCount = 0;
+        Object.values(window.gameState.buildings).forEach(buildingType => {
+            if (buildingType === 'school') {
+                schoolCount++;
+            }
+        });
+        
+        message += `💰 Befolkningsbonus: ${populationBonus} kr\n`;
+        message += `   → Tier ${currentTier} base: ${1 + (2 * currentTier)} kr/borger\n`;
+        if (schoolCount > 0) {
+            const schoolBonus = schoolCount * 2 * Math.max(currentTier, 1);
+            message += `   → Skole bonus: ${schoolBonus} kr/borger (${schoolCount} skole${schoolCount > 1 ? 'r' : ''} × ${2 * Math.max(currentTier, 1)} kr)\n`;
+        }
+        message += `   → Total: ${window.gameState.population} borgere × ${populationBonus / window.gameState.population} kr = ${populationBonus} kr\n`;
+    } else if (window.gameState.population === 0) {
+        message += `💰 Befolkningsbonus: 0 kr (ingen borgere)\n`;
+    }
+    
+    message += `Total indtægt: ${income} kr\n`;
     message += `Udgifter: ${maintenance} kr\n`;
     message += `Netto: ${netResult} kr\n`;
     message += `Penge: ${oldMoney} → ${window.gameState.money} kr\n`;
@@ -548,6 +618,9 @@ function initializeGame() {
     if (!window.gameState.research) {
         window.gameState.research = { cityExpansion: false };
     }
+    
+    // Synkroniser research data
+    syncResearchData();
     
     // Opdater UI
     updateUI();
@@ -623,6 +696,18 @@ function checkBankruptcy() {
     }
 }
 
+// Synkroniser research data med gameState
+function syncResearchData() {
+    if (window.researchSystem && window.researchSystem.researchData) {
+        // Gem research data i gameState for nem adgang
+        if (!window.gameState.researchData) {
+            window.gameState.researchData = {};
+        }
+        window.gameState.researchData = { ...window.researchSystem.researchData };
+        console.log('Research data synchronized. Current tier:', window.gameState.researchData.currentTier);
+    }
+}
+
 // Autosave hver 30 sekunder
 setInterval(function() {
     if (window.gameState) {
@@ -684,3 +769,4 @@ window.initializeGame = initializeGame;
 window.expandCity = expandCity;
 window.buyBuildingSlot = buyBuildingSlot;
 window.setupBuildingMenuEventListeners = setupBuildingMenuEventListeners;
+window.syncResearchData = syncResearchData;
