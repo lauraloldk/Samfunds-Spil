@@ -1,0 +1,15 @@
+{
+  "towns": [],
+  "currentTownId": null,
+  "nextTownId": 1,
+  "settings": {
+    "autoSave": true,
+    "difficulty": "medium",
+    "language": "da"
+  },
+  "metadata": {
+    "created": "2025-07-04T00:00:00.000Z",
+    "lastModified": "2025-07-04T00:00:00.000Z",
+    "version": "1.0"
+  }
+}
