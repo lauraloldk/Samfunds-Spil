@@ -1,5 +1,6 @@
 <div class="city-view">
-    <h2>🏙️ Din By</h2>
+    <h2>Dit Land</h2>
+    
     <div class="buildings-grid">
         <div class="building-slot" id="slot-1">
             <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
@@ -19,6 +20,24 @@
         <div class="building-slot" id="slot-6">
             <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
         </div>
+        <div class="building-slot" id="slot-7" style="display: none;">
+            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+        </div>
+        <div class="building-slot" id="slot-8" style="display: none;">
+            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+        </div>
+        <div class="building-slot" id="slot-9" style="display: none;">
+            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+        </div>
+        <div class="building-slot" id="slot-10" style="display: none;">
+            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+        </div>
+        <div class="building-slot" id="slot-11" style="display: none;">
+            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+        </div>
+        <div class="building-slot" id="slot-12" style="display: none;">
+            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+        </div>
     </div>
 </div>
 
@@ -30,8 +49,8 @@
             <small>Grundlag for andre bygninger</small>
         </button>
         <button class="build-btn" onclick="selectBuilding('house')">
-            🏠 Hus (500 kr, 2 💪)<br>
-            <small>+10 befolkning (kræver vej)</small>
+            🏠 Lille Flække (500 kr, 2 💪)<br>
+            <small>+12 befolkning (kræver vej)</small>
         </button>
         <button class="build-btn" onclick="selectBuilding('powerplant')">
             ⚡ Kraftværk (2000 kr, 3 💪)<br>
@@ -85,8 +104,48 @@
             <span>Netto resultat:</span>
             <span id="net-result" class="status-neutral">0 kr</span>
         </div>
-        <button class="build-btn" onclick="nextYear()" style="margin-top: 10px;">
+        <button class="build-btn" onclick="nextTurn()" style="margin-top: 10px;">
             📅 Næste År
         </button>
+    </div>
+    
+    <div class="expansion-panel" id="expansion-panel" style="display: none;">
+        <h3>📐 Byudvidelse</h3>
+        <p>Køb ekstra byggepladser til din by</p>
+        <p id="slots-info" style="font-size: 0.9em; color: #666; margin-bottom: 10px;">Du har 6 af 12 mulige byggepladser</p>
+        <button class="build-btn" onclick="expandCity()" id="expand-btn">
+            🏗️ Køb byggeplads (5.000 kr)
+        </button>
+        <p><small>Kræver Tier 1 forskning</small></p>
+    </div>
+</div>
+
+<!-- Byggemenu modal -->
+<div id="building-menu" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>🏗️ Vælg bygning</h3>
+        <div class="building-options">
+            <button class="build-option" onclick="buildBuilding('road', document.getElementById('building-menu').dataset.slotId)">
+                🛣️ Vej<br>
+                <small>100 kr, 1 💪</small>
+            </button>
+            <button class="build-option" onclick="buildBuilding('house', document.getElementById('building-menu').dataset.slotId)">
+                🏠 Lille Flække<br>
+                <small>500 kr, 2 💪</small>
+            </button>
+            <button class="build-option" onclick="buildBuilding('powerplant', document.getElementById('building-menu').dataset.slotId)">
+                ⚡ Kraftværk<br>
+                <small>2000 kr, 3 💪</small>
+            </button>
+            <button class="build-option" onclick="buildBuilding('hospital', document.getElementById('building-menu').dataset.slotId)">
+                🏥 Hospital<br>
+                <small>3000 kr, 4 💪</small>
+            </button>
+            <button class="build-option" onclick="buildBuilding('school', document.getElementById('building-menu').dataset.slotId)">
+                🏫 Skole<br>
+                <small>1500 kr, 3 💪</small>
+            </button>
+        </div>
+        <button class="close-btn" onclick="hideBuildingMenu()">Luk</button>
     </div>
 </div>

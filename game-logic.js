@@ -1,495 +1,662 @@
-// Spil logik og funktioner
-let selectedBuilding = null;
-let gameState = {
-    money: 10000,
-    population: 100,
-    happiness: 75,
-    stamina: 10,
-    year: 1930,
-    buildings: {}
-};
-let gameStats = new GameStats();
+// Samfunds Simulator - Game Logic
+// Hovedlogikken for spillet med JSON autosave/load
 
-// Gem data til JSON-filer
+// Initialize gameState hvis det ikke allerede eksisterer
+if (!window.gameState) {
+    window.gameState = {
+        money: 10000,
+        population: 0,
+        happiness: 75,
+        stamina: 10,
+        year: 1930,
+        buildings: {},
+        maxBuildingSlots: 6,
+        research: {
+            cityExpansion: false
+        }
+    };
+}
+
+// Autosave funktionalitet
 function saveGameData() {
-    const gameData = {
-        gameState: gameState,
-        timestamp: new Date().toISOString(),
-        version: "1.0"
-    };
-    
-    // Gem til localStorage (simulerer JSON-fil)
-    localStorage.setItem('samfunds-spil-data', JSON.stringify(gameData));
-    
-    // Gem stats til localStorage
-    const statsData = {
-        stats: gameStats.exportStats(),
-        timestamp: new Date().toISOString()
-    };
-    localStorage.setItem('samfunds-spil-stats', JSON.stringify(statsData));
-    
-    // Debug: Vis når data gemmes
-    console.log('Game data saved:', {
-        money: gameState.money,
-        stamina: gameState.stamina,
-        year: gameState.year
-    });
+    try {
+        const gameData = JSON.stringify(window.gameState);
+        localStorage.setItem('samfunds-spil-data', gameData);
+        console.log('Game data saved successfully');
+        return true;
+    } catch (error) {
+        console.error('Error saving game data:', error);
+        return false;
+    }
 }
 
-// Indlæs data fra JSON-filer
 function loadGameData() {
-    const saved = localStorage.getItem('samfunds-spil-data');
-    if (saved) {
-        const data = JSON.parse(saved);
-        gameState = data.gameState;
-        // Sikr at nye felter eksisterer
-        if (typeof gameState.stamina === 'undefined') gameState.stamina = 10;
-        if (!gameState.year) gameState.year = 1930;
-        updateUI();
-        rebuildCityView();
-        updateBuildButtons();
-    }
-    
-    // Indlæs stats
-    const savedStats = localStorage.getItem('samfunds-spil-stats');
-    if (savedStats) {
-        const statsData = JSON.parse(savedStats);
-        // Gendan stats hvis muligt
-        if (statsData.stats && statsData.stats.history) {
-            gameStats.history = statsData.stats.history;
-            gameStats.achievements = statsData.stats.achievements || [];
+    try {
+        const savedData = localStorage.getItem('samfunds-spil-data');
+        if (savedData) {
+            const loadedState = JSON.parse(savedData);
+            
+            // Sikr at alle nødvendige properties eksisterer
+            window.gameState = {
+                money: loadedState.money || 10000,
+                population: loadedState.population || 0,
+                happiness: loadedState.happiness || 75,
+                stamina: loadedState.stamina || 10,
+                year: loadedState.year || 1930,
+                buildings: loadedState.buildings || {},
+                maxBuildingSlots: loadedState.maxBuildingSlots || 6,
+                research: {
+                    cityExpansion: loadedState.research?.cityExpansion || false
+                }
+            };
+            
+            console.log('Game data loaded successfully');
+            return true;
         }
+    } catch (error) {
+        console.error('Error loading game data:', error);
+    }
+    return false;
+}
+
+// Eksporter spildata til JSON fil
+function exportGameData() {
+    try {
+        const gameData = JSON.stringify(window.gameState, null, 2);
+        const blob = new Blob([gameData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'samfunds-spil-save.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        console.log('Game data exported successfully');
+    } catch (error) {
+        console.error('Error exporting game data:', error);
     }
 }
 
-// Opdater UI
-function updateUI() {
-    document.getElementById('money').textContent = gameState.money;
-    document.getElementById('population').textContent = gameState.population;
-    document.getElementById('happiness').textContent = gameState.happiness;
-    document.getElementById('stamina').textContent = gameState.stamina;
-    document.getElementById('year').textContent = gameState.year;
-    
-    // Beregn og vis årlig økonomi
-    const economy = calculateAnnualEconomy();
-    const annualIncomeElement = document.getElementById('annual-income');
-    const annualExpensesElement = document.getElementById('annual-expenses');
-    const netResultElement = document.getElementById('net-result');
-    
-    if (annualIncomeElement) {
-        annualIncomeElement.textContent = `${economy.income} kr`;
-    }
-    if (annualExpensesElement) {
-        annualExpensesElement.textContent = `${economy.expenses} kr`;
-    }
-    if (netResultElement) {
-        netResultElement.textContent = `${economy.net} kr`;
-        netResultElement.className = economy.net >= 0 ? 'status-good' : 'status-bad';
-    }
-    
-    updateBuildButtons();
-}
-
-function updateBuildButtons() {
-    document.querySelectorAll('.build-btn').forEach(btn => {
-        const onClick = btn.getAttribute('onclick');
-        if (onClick && onClick.includes('selectBuilding')) {
-            const match = onClick.match(/selectBuilding\('(\w+)'\)/);
-            if (!match) return;
-            
-            const buildingType = match[1];
-            
-            // Brug data fra BUILDINGS objektet
-            const buildingData = BUILDINGS[buildingType];
-            if (!buildingData) return;
-            
-            const canAfford = gameState.money >= buildingData.cost;
-            const hasStamina = gameState.stamina >= buildingData.staminaCost;
-            const hasRoadForBuilding = !buildingData.requiresRoad || hasRoadAccess();
-            
-            const canBuild = canAfford && hasStamina && hasRoadForBuilding;
-            
-            btn.disabled = !canBuild;
-            
-            if (!canAfford) {
-                btn.style.opacity = '0.5';
-                btn.title = `Ikke nok penge (kræver ${buildingData.cost} kr, har ${gameState.money} kr)`;
-            } else if (!hasStamina) {
-                btn.style.opacity = '0.5';
-                btn.title = `Ikke nok stamina (kræver ${buildingData.staminaCost} stamina, har ${gameState.stamina} stamina)`;
-            } else if (!hasRoadForBuilding) {
-                btn.style.opacity = '0.5';
-                btn.title = 'Kræver vej først';
-            } else {
-                btn.style.opacity = '1';
-                btn.title = `Koster ${buildingData.cost} kr og ${buildingData.staminaCost} stamina`;
-            }
-        }
-    });
-}
-
-// Tjek om der er vej tilgængelig for andre bygninger
-function hasRoadAccess() {
-    const buildings = Object.values(gameState.buildings);
-    return buildings.includes('road');
-}
-
-// Vælg bygning type
-function selectBuilding(type) {
-    selectedBuilding = type;
-    document.querySelectorAll('.build-btn').forEach(btn => {
-        btn.style.background = '#3498db';
-    });
-    event.target.style.background = '#27ae60';
-}
-
-// Byg bygning på slot
-function buildOnSlot(slotId) {
-    if (!selectedBuilding) {
-        alert('Vælg først en bygning type!');
-        return;
-    }
-
-    // Brug data fra BUILDINGS objektet
-    const buildingData = BUILDINGS[selectedBuilding];
-    if (!buildingData) {
-        alert('Ugyldig bygning type!');
-        return;
-    }
-
-    // Tjek stamina
-    if (gameState.stamina < buildingData.staminaCost) {
-        alert(`Ikke nok stamina! Du har brug for ${buildingData.staminaCost} stamina, men har kun ${gameState.stamina}.`);
-        return;
-    }
-
-    // Tjek om bygning kræver vej
-    if (buildingData.requiresRoad && !hasRoadAccess()) {
-        alert('Du skal bygge en vej først!');
-        return;
-    }
-
-    // Tjek penge
-    if (gameState.money < buildingData.cost) {
-        alert(`Ikke nok penge! Du har brug for ${buildingData.cost} kr, men har kun ${gameState.money} kr.`);
-        return;
-    }
-
-    // Byg bygningen
-    gameState.money -= buildingData.cost;
-    gameState.stamina -= buildingData.staminaCost;
-    gameState.buildings[slotId] = selectedBuilding;
-
-    // Opdater UI
-    const slot = document.getElementById(slotId);
-    slot.innerHTML = `<div class="building ${selectedBuilding}">${buildingData.icon} ${buildingData.name}</div>`;
-    
-    // Opdater stats
-    updateStats();
-    selectedBuilding = null;
-    
-    // Reset knapper
-    document.querySelectorAll('.build-btn').forEach(btn => {
-        btn.style.background = '#3498db';
-    });
-    
-    // Opdater byggeknapper
-    updateBuildButtons();
-    
-    // Gem data
-    saveGameData();
-}
-
-// Opdater statistikker
-function updateStats() {
-    // Tæl bygninger
-    const buildings = Object.values(gameState.buildings);
-    const roadCount = buildings.filter(b => b === 'road').length;
-    const houseCount = buildings.filter(b => b === 'house').length;
-    const powerplantCount = buildings.filter(b => b === 'powerplant').length;
-    const hospitalCount = buildings.filter(b => b === 'hospital').length;
-    const schoolCount = buildings.filter(b => b === 'school').length;
-
-    // Opdater befolkning baseret på huse
-    gameState.population = 100 + (houseCount * 10);
-
-    // Opdater status
-    const roadStatus = document.getElementById('road-status');
-    const powerStatus = document.getElementById('power-status');
-    const healthStatus = document.getElementById('health-status');
-    const educationStatus = document.getElementById('education-status');
-    const housingStatus = document.getElementById('housing-status');
-
-    if (roadStatus) {
-        roadStatus.textContent = roadCount > 0 ? 'Tilgængelig' : 'Ingen';
-        roadStatus.className = roadCount > 0 ? 'status-good' : 'status-bad';
-    }
-
-    if (powerStatus) {
-        powerStatus.textContent = powerplantCount > 0 ? 'God' : 'Ingen';
-        powerStatus.className = powerplantCount > 0 ? 'status-good' : 'status-bad';
-    }
-
-    if (healthStatus) {
-        healthStatus.textContent = hospitalCount > 0 ? 'God' : 'Dårlig';
-        healthStatus.className = hospitalCount > 0 ? 'status-good' : 'status-bad';
-    }
-
-    if (educationStatus) {
-        educationStatus.textContent = schoolCount > 0 ? 'God' : 'Ingen';
-        educationStatus.className = schoolCount > 0 ? 'status-good' : 'status-bad';
-    }
-
-    if (housingStatus) {
-        housingStatus.textContent = houseCount > 2 ? 'Nok' : 'Få';
-        housingStatus.className = houseCount > 2 ? 'status-good' : 'status-bad';
-    }
-
-    // Beregn tilfredshed
-    let happiness = 50; // Base
-    if (powerplantCount > 0) happiness += 10;
-    if (hospitalCount > 0) happiness += 15;
-    if (schoolCount > 0) happiness += 10;
-    if (houseCount >= gameState.population / 15) happiness += 15;
-    if (roadCount > 0) happiness += 5; // Veje øger tilfredshed
-
-    gameState.happiness = Math.min(100, Math.max(0, happiness));
-
-    // Opdater UI
-    updateUI();
-    
-    // Gem stats
-    gameStats.recordStats(gameState);
-}
-
-// Beregn årlig økonomi
-function calculateAnnualEconomy() {
-    const buildings = Object.values(gameState.buildings);
-    const houseCount = buildings.filter(b => b === 'house').length;
-    const powerplantCount = buildings.filter(b => b === 'powerplant').length;
-    const hospitalCount = buildings.filter(b => b === 'hospital').length;
-    const schoolCount = buildings.filter(b => b === 'school').length;
-    const roadCount = buildings.filter(b => b === 'road').length;
-
-    // Indtægter
-    let income = 0;
-    income += gameState.population * 50; // Skat per borger
-    income += houseCount * 200; // Ejendomsskat
-    income += powerplantCount * 300; // Energisalg
-    
-    // Udgifter
-    let expenses = 0;
-    expenses += houseCount * 50; // Hus vedligeholdelse
-    expenses += powerplantCount * 200; // Kraftværk drift
-    expenses += hospitalCount * 300; // Hospital drift
-    expenses += schoolCount * 150; // Skole drift
-    expenses += roadCount * 25; // Vej vedligeholdelse
-    
-    return {
-        income: income,
-        expenses: expenses,
-        net: income - expenses
-    };
-}
-
-// Næste år funktion
-function nextYear() {
-    const economy = calculateAnnualEconomy();
-    
-    // Opdater penge
-    gameState.money += economy.net;
-    
-    // Beregn stamina bonus baseret på performance
-    let staminaGain = 1; // Base stamina
-    if (economy.net > 1000) staminaGain += 2; // Bonus for god økonomi
-    else if (economy.net > 0) staminaGain += 1; // Lille bonus for positiv økonomi
-    
-    if (gameState.happiness > 80) staminaGain += 1; // Bonus for høj tilfredshed
-    else if (gameState.happiness > 60) staminaGain += 0.5;
-    
-    gameState.stamina += Math.floor(staminaGain);
-    gameState.year += 1;
-    
-    // Vis årsoversigt
-    showYearSummary(economy, staminaGain);
-    
-    // Opdater UI
-    updateUI();
-    updateStats();
-    updateBuildButtons();
-    saveGameData();
-}
-
-// Vis årsoversigt
-function showYearSummary(economy, staminaGain) {
-    const summaryText = `
-        År ${gameState.year - 1} Oversigt:
-        
-        💰 Årlig indtægt: ${economy.income} kr
-        💸 Årlige udgifter: ${economy.expenses} kr
-        📊 Netto resultat: ${economy.net} kr
-        
-        😊 Tilfredshed: ${gameState.happiness}%
-        💪 Stamina optjent: +${Math.floor(staminaGain)}
-        
-        📅 Velkommen til år ${gameState.year}!
-    `;
-    
-    alert(summaryText);
-}
-
-// Genbyg by visning
-function rebuildCityView() {
-    Object.keys(gameState.buildings).forEach(slotId => {
-        const buildingType = gameState.buildings[slotId];
-        const buildingData = BUILDINGS[buildingType];
-        const slot = document.getElementById(slotId);
-        
-        if (slot && buildingData) {
-            slot.innerHTML = `<div class="building ${buildingType}">${buildingData.icon} ${buildingData.name}</div>`;
-        }
-    });
-    
-    // Sæt click event listeners på slots
-    document.querySelectorAll('.building-slot').forEach(slot => {
-        slot.addEventListener('click', function() {
-            if (this.querySelector('.empty-slot')) {
-                buildOnSlot(this.id);
-            }
-        });
-    });
-}
-
-// Eksporter data til rigtig JSON-fil
-function exportDataToFile() {
-    const completeData = {
-        gameState: gameState,
-        stats: gameStats.exportStats(),
-        towns: JSON.parse(localStorage.getItem('samfunds-spil-cities') || '[]'),
-        settings: {
-            autoSave: true,
-            difficulty: "medium",
-            language: "da"
-        },
-        metadata: {
-            created: new Date().toISOString(),
-            lastModified: new Date().toISOString(),
-            version: "1.0"
-        }
-    };
-
-    const dataStr = JSON.stringify(completeData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `samfunds-spil-${new Date().toISOString().split('T')[0]}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-}
-
-// Eksporter data
-function exportData() {
-    exportDataToFile();
-}
-
-// Importer data
-function importData() {
+// Importer spildata fra JSON fil
+function importGameData() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
-    input.onchange = function(e) {
-        const file = e.target.files[0];
+    
+    input.onchange = function(event) {
+        const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const data = JSON.parse(e.target.result);
-                    gameState = data.gameState;
-                    // Sikr at stamina og årstal eksisterer
-                    if (typeof gameState.stamina === 'undefined') gameState.stamina = 10;
-                    if (!gameState.year) gameState.year = 1930;
+                    const loadedState = JSON.parse(e.target.result);
+                    
+                    // Sikr at alle nødvendige properties eksisterer
+                    window.gameState = {
+                        money: loadedState.money || 10000,
+                        population: loadedState.population || 0,
+                        happiness: loadedState.happiness || 75,
+                        stamina: loadedState.stamina || 10,
+                        year: loadedState.year || 1930,
+                        buildings: loadedState.buildings || {},
+                        maxBuildingSlots: loadedState.maxBuildingSlots || 6,
+                        research: {
+                            cityExpansion: loadedState.research?.cityExpansion || false
+                        }
+                    };
+                    
+                    saveGameData(); // Gem til localStorage
                     updateUI();
-                    rebuildCityView();
-                    updateStats();
-                    saveGameData(); // Gem opdateret data
-                    alert('Data importeret succesfuldt!');
+                    
+                    console.log('Game data imported successfully');
+                    alert('Spildata importeret!');
                 } catch (error) {
-                    alert('Fejl ved indlæsning af data: ' + error.message);
+                    console.error('Error importing game data:', error);
+                    alert('Fejl ved import af spildata!');
                 }
             };
             reader.readAsText(file);
         }
     };
+    
     input.click();
 }
 
-// Nulstil alt data
-function resetData() {
-    if (confirm('Er du sikker på, at du vil nulstille alle data?')) {
-        gameState = {
+// Nulstil spillet
+function resetGame() {
+    if (confirm('Er du sikker på, at du vil nulstille spillet? Alt progress går tabt!')) {
+        window.gameState = {
             money: 10000,
-            population: 100,
+            population: 0,
             happiness: 75,
             stamina: 10,
             year: 1930,
-            buildings: {}
+            buildings: {},
+            maxBuildingSlots: 6,
+            research: {
+                cityExpansion: false
+            }
         };
-        gameStats = new GameStats();
-        localStorage.removeItem('samfunds-spil-data');
+        
+        saveGameData();
         updateUI();
-        rebuildCityView();
-        updateStats();
-        alert('Data nulstillet!');
+        
+        console.log('Game reset successfully');
+        alert('Spillet er nulstillet!');
     }
 }
 
-// Initialiser spil når siden loader
-function initializeGame() {
-    try {
-        loadGameData();
-        updateUI();
-        rebuildCityView();
-        updateStats();
-        
-        // Sæt click event listeners på building slots
-        setTimeout(() => {
-            document.querySelectorAll('.building-slot').forEach(slot => {
-                slot.addEventListener('click', function() {
-                    if (this.querySelector('.empty-slot')) {
-                        buildOnSlot(this.id);
-                    }
-                });
-            });
-        }, 100); // Small delay to ensure DOM is ready
-        
-        console.log('Game initialized successfully');
-    } catch (error) {
-        console.error('Error initializing game:', error);
+// Opdater UI baseret på gameState
+function updateUI() {
+    // Opdater ressourcer i header
+    document.getElementById('money').textContent = window.gameState.money;
+    document.getElementById('population').textContent = window.gameState.population;
+    document.getElementById('happiness').textContent = window.gameState.happiness;
+    document.getElementById('stamina').textContent = window.gameState.stamina;
+    document.getElementById('year').textContent = window.gameState.year;
+    
+    // Opdater bygnings-grid hvis vi er på game-siden
+    if (currentPage === 'game') {
+        updateBuildingsGrid();
+        updateEconomyDisplay();
+    }
+    
+    // Opdater research UI hvis vi er på research-siden
+    if (currentPage === 'research' && typeof updateResearchUI === 'function') {
+        updateResearchUI();
+    }
+    
+    // Opdater towns UI hvis vi er på towns-siden
+    if (currentPage === 'towns' && typeof updateTownsUI === 'function') {
+        updateTownsUI();
     }
 }
 
-// Automatisk gem data når siden lukkes
-window.addEventListener('beforeunload', function() {
+// Opdater økonomi-display
+function updateEconomyDisplay() {
+    // Beregn indtægt og udgifter
+    const income = window.gameState.population * 10; // 10 kr per borger
+    let maintenance = 0;
+    
+    Object.values(window.gameState.buildings).forEach(buildingType => {
+        const building = BUILDINGS[buildingType];
+        if (building && building.effects && building.effects.maintenance) {
+            maintenance += building.effects.maintenance;
+        }
+    });
+    
+    const netResult = income - maintenance;
+    
+    // Opdater UI elementer
+    const annualIncome = document.getElementById('annual-income');
+    const annualExpenses = document.getElementById('annual-expenses');
+    const netResultElement = document.getElementById('net-result');
+    
+    if (annualIncome) {
+        annualIncome.textContent = income + ' kr';
+        annualIncome.className = income > 0 ? 'status-good' : 'status-neutral';
+    }
+    
+    if (annualExpenses) {
+        annualExpenses.textContent = maintenance + ' kr';
+        annualExpenses.className = maintenance > 0 ? 'status-bad' : 'status-neutral';
+    }
+    
+    if (netResultElement) {
+        netResultElement.textContent = netResult + ' kr';
+        if (netResult > 0) {
+            netResultElement.className = 'status-good';
+        } else if (netResult < 0) {
+            netResultElement.className = 'status-bad';
+        } else {
+            netResultElement.className = 'status-neutral';
+        }
+    }
+    
+    // Opdater status-panelet
+    updateStatusPanel();
+}
+
+// Opdater status-panel
+function updateStatusPanel() {
+    const buildings = Object.values(window.gameState.buildings);
+    
+    // Veje
+    const roadCount = buildings.filter(b => b === 'road').length;
+    const roadStatus = document.getElementById('road-status');
+    if (roadStatus) {
+        if (roadCount > 0) {
+            roadStatus.textContent = `${roadCount} vej${roadCount > 1 ? 'e' : ''}`;
+            roadStatus.className = 'status-good';
+        } else {
+            roadStatus.textContent = 'Ingen';
+            roadStatus.className = 'status-bad';
+        }
+    }
+    
+    // Strøm
+    const powerplantCount = buildings.filter(b => b === 'powerplant').length;
+    const powerStatus = document.getElementById('power-status');
+    if (powerStatus) {
+        if (powerplantCount > 0) {
+            powerStatus.textContent = `${powerplantCount} kraftværk${powerplantCount > 1 ? 'er' : ''}`;
+            powerStatus.className = 'status-good';
+        } else {
+            powerStatus.textContent = 'Ingen';
+            powerStatus.className = 'status-bad';
+        }
+    }
+    
+    // Sundhed
+    const hospitalCount = buildings.filter(b => b === 'hospital').length;
+    const healthStatus = document.getElementById('health-status');
+    if (healthStatus) {
+        if (hospitalCount > 0) {
+            healthStatus.textContent = `${hospitalCount} hospital${hospitalCount > 1 ? 'er' : ''}`;
+            healthStatus.className = 'status-good';
+        } else {
+            healthStatus.textContent = 'Ingen';
+            healthStatus.className = 'status-bad';
+        }
+    }
+    
+    // Uddannelse
+    const schoolCount = buildings.filter(b => b === 'school').length;
+    const educationStatus = document.getElementById('education-status');
+    if (educationStatus) {
+        if (schoolCount > 0) {
+            educationStatus.textContent = `${schoolCount} skole${schoolCount > 1 ? 'r' : ''}`;
+            educationStatus.className = 'status-good';
+        } else {
+            educationStatus.textContent = 'Ingen';
+            educationStatus.className = 'status-bad';
+        }
+    }
+    
+    // Boliger
+    const houseCount = buildings.filter(b => b === 'house').length;
+    const housingStatus = document.getElementById('housing-status');
+    if (housingStatus) {
+        if (houseCount > 0) {
+            housingStatus.textContent = `${houseCount} hus${houseCount > 1 ? 'e' : ''}`;
+            housingStatus.className = 'status-good';
+        } else {
+            housingStatus.textContent = 'Ingen';
+            housingStatus.className = 'status-bad';
+        }
+    }
+}
+
+// Opdater bygnings-grid
+function updateBuildingsGrid() {
+    for (let i = 1; i <= 12; i++) { // Alle 12 mulige slots
+        const slot = document.getElementById(`slot-${i}`);
+        if (slot) {
+            if (i <= window.gameState.maxBuildingSlots) {
+                // Slot er tilgængelig
+                slot.style.display = 'block';
+                
+                if (window.gameState.buildings[i]) {
+                    // Slot har bygning
+                    const buildingType = window.gameState.buildings[i];
+                    const building = BUILDINGS[buildingType];
+                    slot.innerHTML = `
+                        <div class="building">
+                            <div class="building-icon">${building.icon}</div>
+                            <div class="building-name">${building.name}</div>
+                            <button class="demolish-btn" onclick="demolishBuilding(${i})">Riv ned</button>
+                        </div>
+                    `;
+                } else {
+                    // Tom slot
+                    slot.innerHTML = `
+                        <div class="empty-slot" onclick="showBuildingMenu(${i})">
+                            Tom grund<br>Klik for at bygge
+                        </div>
+                    `;
+                }
+            } else {
+                // Slot er låst
+                slot.style.display = 'none';
+            }
+        }
+    }
+}
+
+// Vis byggemenu
+function showBuildingMenu(slotId) {
+    const menu = document.getElementById('building-menu');
+    if (menu) {
+        menu.style.display = 'block';
+        menu.dataset.slotId = slotId;
+        console.log('Building menu shown for slot', slotId);
+    } else {
+        console.error('Building menu not found in DOM');
+    }
+}
+
+// Skjul byggemenu
+function hideBuildingMenu() {
+    const menu = document.getElementById('building-menu');
+    if (menu) {
+        menu.style.display = 'none';
+        console.log('Building menu hidden');
+    }
+}
+
+// Luk byggemenu når man klikker uden for den
+function setupBuildingMenuEventListeners() {
+    const menu = document.getElementById('building-menu');
+    if (menu) {
+        menu.addEventListener('click', function(e) {
+            if (e.target === menu) {
+                hideBuildingMenu();
+            }
+        });
+    }
+}
+
+// Byg bygning
+function buildBuilding(buildingType, slotId) {
+    console.log('Building', buildingType, 'in slot', slotId);
+    
+    const building = BUILDINGS[buildingType];
+    if (!building) {
+        console.error('Building type not found:', buildingType);
+        return;
+    }
+    
+    // Tjek om vi har råd og stamina
+    if (window.gameState.money < building.cost) {
+        alert('Ikke nok penge!');
+        return;
+    }
+    
+    if (window.gameState.stamina < building.staminaCost) {
+        alert('Ikke nok stamina!');
+        return;
+    }
+    
+    // Tjek om bygningen kræver vej
+    if (building.requiresRoad && !hasRoadAccess()) {
+        alert('Bygningen kræver en vej!');
+        return;
+    }
+    
+    // Byg bygningen
+    window.gameState.money -= building.cost;
+    window.gameState.stamina -= building.staminaCost;
+    window.gameState.buildings[slotId] = buildingType;
+    
+    // Anvend bygningens effekter
+    if (building.effects) {
+        if (building.effects.population) {
+            window.gameState.population += building.effects.population;
+        }
+        if (building.effects.happiness) {
+            window.gameState.happiness += building.effects.happiness;
+            // Begræns tilfredshed mellem 0 og 100
+            window.gameState.happiness = Math.max(0, Math.min(100, window.gameState.happiness));
+        }
+    }
+    
+    hideBuildingMenu();
+    updateUI();
     saveGameData();
+    
+    console.log('Building built successfully');
+}
+
+// Tjek om der er vejadgang
+function hasRoadAccess() {
+    return Object.values(window.gameState.buildings).includes('road');
+}
+
+// Riv bygning ned
+function demolishBuilding(slotId) {
+    if (confirm('Er du sikker på, at du vil rive bygningen ned?')) {
+        const buildingType = window.gameState.buildings[slotId];
+        const building = BUILDINGS[buildingType];
+        
+        if (building && building.effects) {
+            // Fjern bygningens effekter
+            if (building.effects.population) {
+                window.gameState.population -= building.effects.population;
+                window.gameState.population = Math.max(0, window.gameState.population);
+            }
+            if (building.effects.happiness) {
+                window.gameState.happiness -= building.effects.happiness;
+                window.gameState.happiness = Math.max(0, Math.min(100, window.gameState.happiness));
+            }
+        }
+        
+        // Fjern bygningen
+        delete window.gameState.buildings[slotId];
+        
+        // Giv halvdelen af prisen tilbage
+        window.gameState.money += Math.floor(building.cost / 2);
+        
+        updateUI();
+        saveGameData();
+    }
+}
+
+// Næste runde
+function nextTurn() {
+    // Øg år
+    window.gameState.year++;
+    
+    // Regenerer stamina
+    const oldStamina = window.gameState.stamina;
+    window.gameState.stamina = Math.min(10, window.gameState.stamina + 3);
+    
+    // Beregn indkomst og udgifter
+    let income = window.gameState.population * 10; // 10 kr per borger
+    let maintenance = 0;
+    
+    Object.values(window.gameState.buildings).forEach(buildingType => {
+        const building = BUILDINGS[buildingType];
+        if (building && building.effects && building.effects.maintenance) {
+            maintenance += building.effects.maintenance;
+        }
+    });
+    
+    const netResult = income - maintenance;
+    const oldMoney = window.gameState.money;
+    
+    window.gameState.money += netResult;
+    
+    // Sørg for at penge ikke går under 0
+    window.gameState.money = Math.max(0, window.gameState.money);
+    
+    // Vis feedback
+    let message = `År ${window.gameState.year}\n`;
+    message += `Stamina: ${oldStamina} → ${window.gameState.stamina}\n`;
+    message += `Indtægt: ${income} kr\n`;
+    message += `Udgifter: ${maintenance} kr\n`;
+    message += `Netto: ${netResult} kr\n`;
+    message += `Penge: ${oldMoney} → ${window.gameState.money} kr`;
+    
+    if (netResult < 0) {
+        message += `\n⚠️ Du har underskud! Byg flere boliger for at øge indtægten.`;
+    }
+    
+    updateUI();
+    saveGameData();
+    
+    // Tjek for bankrot
+    setTimeout(() => {
+        checkBankruptcy();
+    }, 500);
+    
+    console.log(message);
+    alert(message);
+}
+
+// Vælg bygning (fra sidebar)
+function selectBuilding(buildingType) {
+    console.log('Selected building:', buildingType);
+    
+    // Find første ledige slot
+    let emptySlot = null;
+    for (let i = 1; i <= window.gameState.maxBuildingSlots; i++) {
+        if (!window.gameState.buildings[i]) {
+            emptySlot = i;
+            break;
+        }
+    }
+    
+    if (emptySlot) {
+        buildBuilding(buildingType, emptySlot);
+    } else {
+        alert('Ingen ledige byggepladser! Udvid din by eller riv nogle bygninger ned.');
+    }
+}
+
+// Initialiser spillet
+function initializeGame() {
+    // Prøv at indlæse gemt data
+    if (!loadGameData()) {
+        // Hvis der ikke er gemt data, brug standardværdier
+        console.log('No saved data found, using defaults');
+    }
+    
+    // Sikr at alle nødvendige properties eksisterer
+    if (!window.gameState.research) {
+        window.gameState.research = { cityExpansion: false };
+    }
+    
+    // Opdater UI
+    updateUI();
+    
+    // Setup event listeners for byggemenu
+    setTimeout(() => {
+        setupBuildingMenuEventListeners();
+    }, 100);
+    
+    console.log('Game initialized successfully');
+}
+
+// Udvid byen (køb næste slot)
+function expandCity() {
+    // Find næste tilgængelige slot
+    const nextSlot = window.gameState.maxBuildingSlots + 1;
+    
+    if (nextSlot <= 12) {
+        buyBuildingSlot(nextSlot);
+    } else {
+        alert('Du har allerede købt alle tilgængelige byggepladser!');
+    }
+}
+
+// Køb en specifik byggeslot
+function buyBuildingSlot(slotNumber) {
+    // Tjek om forskning er låst op
+    if (!window.gameState.research.cityExpansion) {
+        alert('Du skal forst forske byudvidelse før du kan købe byggepladser!');
+        return;
+    }
+    
+    // Tjek om vi har råd
+    if (window.gameState.money < 5000) {
+        alert('Du har ikke nok penge! Kræver 5.000 kr.');
+        return;
+    }
+    
+    // Tjek om slot allerede er købt
+    if (slotNumber <= window.gameState.maxBuildingSlots) {
+        alert('Denne byggeplads er allerede købt!');
+        return;
+    }
+    
+    // Køb slot
+    window.gameState.money -= 5000;
+    window.gameState.maxBuildingSlots = slotNumber;
+    
+    // Opdater UI
+    updateUI();
+    saveGameData();
+    
+    alert(`Byggeplads ${slotNumber} købt! Du har nu ${window.gameState.maxBuildingSlots} byggepladser.`);
+}
+
+// Tjek og håndter bankrot
+function checkBankruptcy() {
+    if (window.gameState.money <= 0 && window.gameState.stamina <= 0) {
+        const choice = confirm(
+            'Du er gået bankerot! 💸\n' +
+            'Penge: ' + window.gameState.money + ' kr\n' +
+            'Stamina: ' + window.gameState.stamina + '\n\n' +
+            'Vil du have et nødlån på 2.000 kr for at fortsætte?'
+        );
+        
+        if (choice) {
+            window.gameState.money += 2000;
+            window.gameState.stamina = Math.max(1, window.gameState.stamina);
+            updateUI();
+            saveGameData();
+            alert('Du har fået et nødlån på 2.000 kr! 🏦\nBrug dem klogt til at bygge flere boliger og skabe indtægt.');
+        }
+    }
+}
+
+// Autosave hver 30 sekunder
+setInterval(function() {
+    if (window.gameState) {
+        saveGameData();
+    }
+}, 30000);
+
+// Gem når vinduet lukkes
+window.addEventListener('beforeunload', function() {
+    if (window.gameState) {
+        saveGameData();
+    }
 });
 
-// Gem også data periodisk (hvert 30. sekund)
-setInterval(saveGameData, 30000);
+// Initialiser når scriptet indlæses
+document.addEventListener('DOMContentLoaded', function() {
+    // Vent lidt for at sikre alle scripts er indlæst
+    setTimeout(function() {
+        if (!window.gameState) {
+            window.gameState = {
+                money: 10000,
+                population: 0,
+                happiness: 75,
+                stamina: 10,
+                year: 1930,
+                buildings: {},
+                maxBuildingSlots: 6,
+                research: {
+                    cityExpansion: false
+                }
+            };
+        }
+        
+        // Prøv at indlæse gemt data
+        loadGameData();
+        
+        console.log('Game state initialized on DOM load');
+    }, 100);
+});
 
-// Initialiser andre sider
-function initializeTowns() {
-    // Towns side initialisering
-    console.log('Towns page initialized');
-}
-
-function initializeStats() {
-    // Stats side initialisering
-    console.log('Stats page initialized');
-}
-
-function initializeSettings() {
-    // Settings side initialisering
-    console.log('Settings page initialized');
-}
+// Eksporter funktioner til global scope
+window.saveGameData = saveGameData;
+window.loadGameData = loadGameData;
+window.exportGameData = exportGameData;
+window.importGameData = importGameData;
+window.resetGame = resetGame;
+window.updateUI = updateUI;
+window.updateBuildingsGrid = updateBuildingsGrid;
+window.updateEconomyDisplay = updateEconomyDisplay;
+window.updateStatusPanel = updateStatusPanel;
+window.checkBankruptcy = checkBankruptcy;
+window.showBuildingMenu = showBuildingMenu;
+window.hideBuildingMenu = hideBuildingMenu;
+window.buildBuilding = buildBuilding;
+window.demolishBuilding = demolishBuilding;
+window.nextTurn = nextTurn;
+window.selectBuilding = selectBuilding;
+window.initializeGame = initializeGame;
+window.expandCity = expandCity;
+window.buyBuildingSlot = buyBuildingSlot;
+window.setupBuildingMenuEventListeners = setupBuildingMenuEventListeners;

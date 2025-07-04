@@ -4,300 +4,554 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Samfunds Simulator</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-        }
-
-        .game-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        header {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 2.5em;
-        }
-
-        .resources {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .resource {
-            background: #3498db;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            text-align: center;
-            font-weight: bold;
-            min-width: 150px;
-        }
-
-        .resource-label {
-            display: block;
-            font-size: 0.9em;
-            margin-bottom: 5px;
-        }
-
-        .navigation {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .nav-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            background: #ecf0f1;
-            color: #2c3e50;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.9em;
-        }
-
-        .nav-btn:hover {
-            background: #d5dbdb;
-            transform: translateY(-2px);
-        }
-
-        .nav-btn.active {
-            background: #3498db;
-            color: white;
-        }
-
-        .main-content {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            min-height: 400px;
-        }
-
-        .city-view {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-
-        .buildings-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            flex: 1;
-        }
-
-        .building-slot {
-            background: #f8f9fa;
-            border: 2px dashed #ccc;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            min-height: 150px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .building-slot:hover {
-            border-color: #3498db;
-            background: #e3f2fd;
-        }
-
-        .empty-slot {
-            color: #7f8c8d;
-            font-size: 0.9em;
-        }
-
-        .building {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            min-width: 300px;
-        }
-
-        .actions-panel,
-        .status-panel,
-        .economy-panel {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #e9ecef;
-        }
-
-        .actions-panel h3,
-        .status-panel h3,
-        .economy-panel h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-        }
-
-        .build-btn {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 10px;
-            border: none;
-            border-radius: 8px;
-            background: #3498db;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.9em;
-        }
-
-        .build-btn:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
-        }
-
-        .build-btn:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .status-item:last-child {
-            border-bottom: none;
-        }
-
-        .status-good {
-            color: #27ae60;
-            font-weight: bold;
-        }
-
-        .status-bad {
-            color: #e74c3c;
-            font-weight: bold;
-        }
-
-        .status-neutral {
-            color: #f39c12;
-            font-weight: bold;
-        }
-
-        .settings-container,
-        .cities-container,
-        .stats-container {
-            text-align: center;
-        }
-
-        .settings-panel {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-
-        .cities-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .city-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid #e9ecef;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .stat-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid #e9ecef;
-        }
-
-        @media (max-width: 768px) {
-            .city-view {
-                flex-direction: column;
-            }
-            
-            .sidebar {
-                min-width: unset;
-            }
-            
-            .resources {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .navigation {
-                flex-direction: column;
-                align-items: center;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="game-container">
-        <!-- Menu bliver indlæst her -->
-        <div id="menu-container"></div>
+        <!-- Menu integreret direkte -->
+        <header>
+            <h1>🏛️ Samfunds Simulator</h1>
+            <div class="resources">
+                <div class="resource">
+                    <span class="resource-label">💰 Penge</span>
+                    <span id="money">10000</span> kr
+                </div>
+                <div class="resource">
+                    <span class="resource-label">👥 Befolkning</span>
+                    <span id="population">0</span> borgere
+                </div>
+                <div class="resource">
+                    <span class="resource-label">😊 Tilfredshed</span>
+                    <span id="happiness">75</span>%
+                </div>
+                <div class="resource">
+                    <span class="resource-label">💪 Stamina</span>
+                    <span id="stamina">10</span>
+                </div>
+                <div class="resource">
+                    <span class="resource-label">📅 År</span>
+                    <span id="year">1930</span>
+                </div>
+            </div>
+            
+            <div class="navigation">
+                <button class="nav-btn active" onclick="loadPage('game')">🎮 Spil</button>
+                <button class="nav-btn" onclick="loadPage('research')">🔬 Forskning</button>
+                <button class="nav-btn" onclick="loadPage('towns')">🏙️ Byer</button>
+                <button class="nav-btn" onclick="loadPage('stats')">📊 Statistik</button>
+                <button class="nav-btn" onclick="loadPage('settings')">⚙️ Indstillinger</button>
+            </div>
+        </header>
         
-        <!-- Hovedindhold bliver indlæst her -->
+        <!-- Hovedindhold med game.html som standard -->
         <main class="main-content">
             <div id="page-content">
-                <!-- Siden indhold bliver indlæst her -->
+                <!-- Game content bliver indlæst her -->
             </div>
         </main>
     </div>
 
     <!-- Scripts -->
+    <script>
+        // Initialiser gameState først for at sikre det er tilgængeligt
+        window.gameState = {
+            money: 10000,
+            population: 0,
+            happiness: 75,
+            stamina: 10,
+            year: 1930,
+            buildings: {},
+            maxBuildingSlots: 6,
+            research: {
+                cityExpansion: false
+            }
+        };
+    </script>
     <script src="gamedata.js"></script>
     <script src="stats.js"></script>
-    <script src="menu-load-pages.js"></script>
+    <script src="research.js"></script>
+    <script src="towns.js"></script>
+    <script src="settings.js"></script>
     <script src="game-logic.js"></script>
+    
+    <script>
+        // Simpel navigation uden menu-load-pages.js
+        let currentPage = 'game';
+        
+        async function loadPage(pageName) {
+            try {
+                // Prøv først med fetch (virker med HTTP server)
+                if (window.location.protocol !== 'file:') {
+                    const response = await fetch(`${pageName}.html`);
+                    const html = await response.text();
+                    document.getElementById('page-content').innerHTML = html;
+                } else {
+                    // Fallback for file:// protokol
+                    loadPageFallback(pageName);
+                }
+                
+                currentPage = pageName;
+                
+                // Opdater aktiv menu-knap
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[onclick="loadPage('${pageName}')"]`).classList.add('active');
+                
+                // Kør side-specifik initialisering
+                initializePage(pageName);
+            } catch (error) {
+                console.error(`Failed to load page ${pageName}:`, error);
+                loadPageFallback(pageName);
+            }
+        }
+        
+        function loadPageFallback(pageName) {
+            const contentContainer = document.getElementById('page-content');
+            let html = '';
+            
+            switch(pageName) {
+                case 'game':
+                    html = getGameHTML();
+                    break;
+                case 'research':
+                    html = getResearchHTML();
+                    break;
+                case 'towns':
+                    html = getTownsHTML();
+                    break;
+                case 'stats':
+                    html = getStatsHTML();
+                    break;
+                case 'settings':
+                    html = getSettingsHTML();
+                    break;
+                default:
+                    html = '<div>Siden blev ikke fundet</div>';
+            }
+            
+            contentContainer.innerHTML = html;
+        }
+        
+        function initializePage(pageName) {
+            switch(pageName) {
+                case 'game':
+                    if (typeof initializeGame === 'function') {
+                        initializeGame();
+                    }
+                    break;
+                case 'towns':
+                    if (typeof initializeTowns === 'function') {
+                        initializeTowns();
+                    }
+                    break;
+                case 'stats':
+                    if (typeof initializeStats === 'function') {
+                        initializeStats();
+                    }
+                    break;
+                case 'research':
+                    if (typeof initializeResearch === 'function') {
+                        initializeResearch();
+                    }
+                    break;
+                case 'settings':
+                    if (typeof initializeSettings === 'function') {
+                        initializeSettings();
+                    }
+                    break;
+            }
+        }
+        
+        function getGameHTML() {
+            return `
+                <div class="city-view">
+                    <h2>Dit Land</h2>
+                    
+                    <div class="buildings-grid">
+                        <div class="building-slot" id="slot-1">
+                            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                        </div>
+                        <div class="building-slot" id="slot-2">
+                            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                        </div>
+                        <div class="building-slot" id="slot-3">
+                            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                        </div>
+                        <div class="building-slot" id="slot-4">
+                            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                        </div>
+                        <div class="building-slot" id="slot-5">
+                            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                        </div>
+                        <div class="building-slot" id="slot-6">
+                            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                        </div>
+                        <div class="building-slot" id="slot-7" style="display: none;">
+                            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                        </div>
+                        <div class="building-slot" id="slot-8" style="display: none;">
+                            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                        </div>
+                        <div class="building-slot" id="slot-9" style="display: none;">
+                            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                        </div>
+                        <div class="building-slot" id="slot-10" style="display: none;">
+                            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                        </div>
+                        <div class="building-slot" id="slot-11" style="display: none;">
+                            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                        </div>
+                        <div class="building-slot" id="slot-12" style="display: none;">
+                            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar">
+                    <div class="actions-panel">
+                        <h3>🏗️ Byg</h3>
+                        <button class="build-btn" onclick="selectBuilding('road')">
+                            🛣️ Vej (100 kr, 1 💪)<br>
+                            <small>Grundlag for andre bygninger</small>
+                        </button>
+                        <button class="build-btn" onclick="selectBuilding('house')">
+                            🏠 Lille Flække (500 kr, 2 💪)<br>
+                            <small>+12 befolkning (kræver vej)</small>
+                        </button>
+                        <button class="build-btn" onclick="selectBuilding('powerplant')">
+                            ⚡ Kraftværk (2000 kr, 3 💪)<br>
+                            <small>Giver strøm (kræver vej)</small>
+                        </button>
+                        <button class="build-btn" onclick="selectBuilding('hospital')">
+                            🏥 Hospital (3000 kr, 4 💪)<br>
+                            <small>Forbedrer sundhed (kræver vej)</small>
+                        </button>
+                        <button class="build-btn" onclick="selectBuilding('school')">
+                            🏫 Skole (1500 kr, 3 💪)<br>
+                            <small>Giver uddannelse (kræver vej)</small>
+                        </button>
+                    </div>
+
+                    <div class="status-panel">
+                        <h3>📊 Status</h3>
+                        <div class="status-item">
+                            <span>🛣️ Veje:</span>
+                            <span id="road-status" class="status-bad">Ingen</span>
+                        </div>
+                        <div class="status-item">
+                            <span>⚡ Strøm:</span>
+                            <span id="power-status" class="status-bad">Ingen</span>
+                        </div>
+                        <div class="status-item">
+                            <span>🏥 Sundhed:</span>
+                            <span id="health-status" class="status-bad">Dårlig</span>
+                        </div>
+                        <div class="status-item">
+                            <span>📚 Uddannelse:</span>
+                            <span id="education-status" class="status-bad">Ingen</span>
+                        </div>
+                        <div class="status-item">
+                            <span>🏠 Boliger:</span>
+                            <span id="housing-status" class="status-bad">Få</span>
+                        </div>
+                    </div>
+
+                    <div class="economy-panel">
+                        <h3>💰 Økonomi</h3>
+                        <div class="status-item">
+                            <span>Årlig indtægt:</span>
+                            <span id="annual-income" class="status-neutral">0 kr</span>
+                        </div>
+                        <div class="status-item">
+                            <span>Årlige udgifter:</span>
+                            <span id="annual-expenses" class="status-neutral">0 kr</span>
+                        </div>
+                        <div class="status-item">
+                            <span>Netto resultat:</span>
+                            <span id="net-result" class="status-neutral">0 kr</span>
+                        </div>
+                        <button class="build-btn" onclick="nextTurn()" style="margin-top: 10px;">
+                            📅 Næste År
+                        </button>
+                    </div>
+                    
+                    <div class="expansion-panel" id="expansion-panel" style="display: none;">
+                        <h3>📐 Byudvidelse</h3>
+                        <p>Køb ekstra byggepladser til din by</p>
+                        <p id="slots-info" style="font-size: 0.9em; color: #666; margin-bottom: 10px;">Du har 6 af 12 mulige byggepladser</p>
+                        <button class="build-btn" onclick="expandCity()" id="expand-btn">
+                            🏗️ Køb byggeplads (5.000 kr)
+                        </button>
+                        <p><small>Kræver Tier 1 forskning</small></p>
+                    </div>
+                </div>
+                
+                <!-- Byggemenu modal -->
+                <div id="building-menu" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <h3>🏗️ Vælg bygning</h3>
+                        <div class="building-options">
+                            <button class="build-option" onclick="buildBuilding('road', document.getElementById('building-menu').dataset.slotId)">
+                                🛣️ Vej<br>
+                                <small>100 kr, 1 💪</small>
+                            </button>
+                            <button class="build-option" onclick="buildBuilding('house', document.getElementById('building-menu').dataset.slotId)">
+                                🏠 Lille Flække<br>
+                                <small>500 kr, 2 💪</small>
+                            </button>
+                            <button class="build-option" onclick="buildBuilding('powerplant', document.getElementById('building-menu').dataset.slotId)">
+                                ⚡ Kraftværk<br>
+                                <small>2000 kr, 3 💪</small>
+                            </button>
+                            <button class="build-option" onclick="buildBuilding('hospital', document.getElementById('building-menu').dataset.slotId)">
+                                🏥 Hospital<br>
+                                <small>3000 kr, 4 💪</small>
+                            </button>
+                            <button class="build-option" onclick="buildBuilding('school', document.getElementById('building-menu').dataset.slotId)">
+                                🏫 Skole<br>
+                                <small>1500 kr, 3 💪</small>
+                            </button>
+                        </div>
+                        <button class="close-btn" onclick="hideBuildingMenu()">Luk</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function getResearchHTML() {
+            return `
+                <div class="research-container">
+                    <h2>🔬 Forskning og Udvikling</h2>
+                    
+                    <div class="research-tiers">
+                        <div class="tier-section">
+                            <h3>Tier 0 - Grundlæggende (Altid tilgængelig)</h3>
+                            <div class="research-grid">
+                                <div class="research-card unlocked" id="basic-construction">
+                                    <h4>🏗️ Grundlæggende Byggeri</h4>
+                                    <p>Tillader byggeri af grundlæggende strukturer</p>
+                                    <div class="research-status completed">✅ Færdig</div>
+                                </div>
+                                <div class="research-card unlocked" id="basic-economy">
+                                    <h4>💰 Grundlæggende Økonomi</h4>
+                                    <p>Forståelse af penge og handel</p>
+                                    <div class="research-status completed">✅ Færdig</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tier-section">
+                            <h3>Tier 1 - Byudvidelse</h3>
+                            <div class="research-grid">
+                                <div class="research-card" id="city-expansion">
+                                    <h4>📐 Byudvidelse</h4>
+                                    <p>Låser op for muligheden for at købe ekstra byggepladser</p>
+                                    <div class="research-cost">💰 Pris: 2.000 kr</div>
+                                    <div class="research-status" id="expansion-status">❌ Ikke forsket</div>
+                                    <button class="research-btn" onclick="doResearch('city-expansion')" id="expansion-btn">
+                                        🔬 Forsk
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function getTownsHTML() {
+            return `
+                <div class="towns-container">
+                    <h2>🏙️ Byudvidelse</h2>
+                    
+                    <div class="expansion-info">
+                        <h3>📊 Byoversigt</h3>
+                        <div class="status-item">
+                            <span>Nuværende byggepladser:</span>
+                            <span id="current-slots">6</span>
+                        </div>
+                        <div class="status-item">
+                            <span>Maksimale byggepladser:</span>
+                            <span id="max-slots">12</span>
+                        </div>
+                        <div class="status-item">
+                            <span>Ledige pladser:</span>
+                            <span id="available-slots">6</span>
+                        </div>
+                    </div>
+                    
+                    <div class="expansion-actions">
+                        <h3>🏗️ Køb Byggepladser</h3>
+                        <p>Du kan udvide din by ved at købe ekstra byggepladser.</p>
+                        <p><strong>Krav:</strong> Tier 1 forskning (Byudvidelse)</p>
+                        <p><strong>Pris:</strong> 5.000 kr per byggeplads</p>
+                        
+                        <div class="expansion-grid">
+                            <div class="expansion-slot" id="slot-7">
+                                <div class="slot-number">Plads 7</div>
+                                <div class="slot-status" id="status-7">🔒 Låst</div>
+                                <button class="buy-slot-btn" onclick="buyBuildingSlot(7)" id="buy-7">
+                                    💰 Køb (5.000 kr)
+                                </button>
+                            </div>
+                            <div class="expansion-slot" id="slot-8">
+                                <div class="slot-number">Plads 8</div>
+                                <div class="slot-status" id="status-8">🔒 Låst</div>
+                                <button class="buy-slot-btn" onclick="buyBuildingSlot(8)" id="buy-8">
+                                    💰 Køb (5.000 kr)
+                                </button>
+                            </div>
+                            <div class="expansion-slot" id="slot-9">
+                                <div class="slot-number">Plads 9</div>
+                                <div class="slot-status" id="status-9">🔒 Låst</div>
+                                <button class="buy-slot-btn" onclick="buyBuildingSlot(9)" id="buy-9">
+                                    💰 Køb (5.000 kr)
+                                </button>
+                            </div>
+                            <div class="expansion-slot" id="slot-10">
+                                <div class="slot-number">Plads 10</div>
+                                <div class="slot-status" id="status-10">🔒 Låst</div>
+                                <button class="buy-slot-btn" onclick="buyBuildingSlot(10)" id="buy-10">
+                                    💰 Køb (5.000 kr)
+                                </button>
+                            </div>
+                            <div class="expansion-slot" id="slot-11">
+                                <div class="slot-number">Plads 11</div>
+                                <div class="slot-status" id="status-11">🔒 Låst</div>
+                                <button class="buy-slot-btn" onclick="buyBuildingSlot(11)" id="buy-11">
+                                    💰 Køb (5.000 kr)
+                                </button>
+                            </div>
+                            <div class="expansion-slot" id="slot-12">
+                                <div class="slot-number">Plads 12</div>
+                                <div class="slot-status" id="status-12">🔒 Låst</div>
+                                <button class="buy-slot-btn" onclick="buyBuildingSlot(12)" id="buy-12">
+                                    💰 Køb (5.000 kr)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function getStatsHTML() {
+            return `
+                <div class="stats-container">
+                    <h2>📊 Statistik</h2>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>💰 Økonomi</h3>
+                            <div class="stat-item">
+                                <span>Nuværende penge:</span>
+                                <span id="stat-money">10.000 kr</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Årlig indtægt:</span>
+                                <span id="stat-income">0 kr</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Årlige udgifter:</span>
+                                <span id="stat-expenses">0 kr</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <h3>👥 Befolkning</h3>
+                            <div class="stat-item">
+                                <span>Nuværende befolkning:</span>
+                                <span id="stat-population">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Tilfredshed:</span>
+                                <span id="stat-happiness">75%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Boliger:</span>
+                                <span id="stat-houses">0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <h3>🏗️ Bygninger</h3>
+                            <div class="stat-item">
+                                <span>Veje:</span>
+                                <span id="stat-roads">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Kraftværker:</span>
+                                <span id="stat-powerplants">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Hospitaler:</span>
+                                <span id="stat-hospitals">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Skoler:</span>
+                                <span id="stat-schools">0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <h3>🔬 Forskning</h3>
+                            <div class="stat-item">
+                                <span>Byudvidelse:</span>
+                                <span id="stat-expansion">❌ Ikke forsket</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Byggepladser:</span>
+                                <span id="stat-slots">6/12</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function getSettingsHTML() {
+            return `
+                <div class="settings-container">
+                    <h2>⚙️ Indstillinger</h2>
+                    
+                    <div class="settings-panel">
+                        <div class="settings-group">
+                            <h3>🎮 Spil</h3>
+                            <label for="autosave">Automatisk gemning:</label>
+                            <input type="checkbox" id="autosave" checked>
+                            
+                            <label for="speed">Spil hastighed:</label>
+                            <select id="speed">
+                                <option value="slow">Langsom</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="fast">Hurtig</option>
+                            </select>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <h3>💾 Data</h3>
+                            <button onclick="saveGameData()">💾 Gem spil</button>
+                            <button onclick="loadGameData()">📁 Indlæs spil</button>
+                            <button onclick="exportGameData()">📤 Eksporter data</button>
+                            <button onclick="importGameData()">📥 Importer data</button>
+                            <button onclick="resetGame()" class="danger">🔄 Nulstil spil</button>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <h3>🔧 Debug</h3>
+                            <button onclick="clearCache()">🗑️ Ryd cache</button>
+                            <button onclick="showDebugInfo()">🐛 Debug info</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Indlæs game.html som standard når siden loader
+        window.addEventListener('DOMContentLoaded', function() {
+            loadPage('game');
+        });
+    </script>
 </body>
 </html>

@@ -13,13 +13,13 @@ const BUILDINGS = {
         requiresRoad: false
     },
     house: {
-        name: 'Hus',
+        name: 'Lille Flække',
         icon: '🏠',
         cost: 500,
         staminaCost: 2,
-        description: 'Giver plads til 10 borgere',
+        description: 'Giver plads til 12 borgere',
         effects: {
-            population: 10,
+            population: 12,
             happiness: 2,
             maintenance: 50
         },

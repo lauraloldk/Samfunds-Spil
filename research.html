@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forskning - Samfunds Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .research-info {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 200px;
+        }
+
+        .info-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .info-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .research-tiers {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .tier-section {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .tier-section.unlocked {
+            border-color: #27ae60;
+            background: linear-gradient(135deg, #d5f4e6 0%, rgba(255, 255, 255, 0.95) 100%);
+        }
+
+        .tier-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .tier-description {
+            margin-bottom: 15px;
+        }
+
+        .tier-description p {
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .tier-unlocks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .unlock-item {
+            background: #3498db;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .research-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            background: #3498db;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+
+        .research-btn:hover:not(:disabled) {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .research-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .tier-status {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .tier-status.unlocked {
+            background: #27ae60;
+            color: white;
+        }
+
+        .tier-status.locked {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .tier-status.available {
+            background: #f39c12;
+            color: white;
+        }
+
+        .research-history {
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .research-history h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .research-entry {
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #3498db;
+        }
+
+        .research-entry:last-child {
+            margin-bottom: 0;
+        }
+
+        .research-entry small {
+            color: #7f8c8d;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 Forskning</h1>
+            <p>Udvikl dit samfund gennem forskning og innovation</p>
+            <div class="nav-buttons">
+                <a href="index.html" class="nav-btn">🏠 Hjem</a>
+                <a href="stats.html" class="nav-btn">📊 Statistikker</a>
+                <a href="towns.html" class="nav-btn">🏘️ By-udvidelse</a>
+                <a href="settings.html" class="nav-btn">⚙️ Indstillinger</a>
+            </div>
+        </div>
+
+        <div class="research-info">
+            <div class="info-card">
+                <h3>🧪 Forskningspoint</h3>
+                <div class="info-value" id="research-points">0</div>
+                <p><small>1 per 10 indbyggere + 5 per skole</small></p>
+            </div>
+            <div class="info-card">
+                <h3>🎯 Nuværende Tier</h3>
+                <div class="info-value" id="current-tier">0</div>
+            </div>
+        </div>
+
+        <div class="research-tiers">
+            <!-- Tier 0 -->
+            <div class="tier-section unlocked" id="tier-0">
+                <div class="tier-status unlocked">✅ Ulåst</div>
+                <h3>🏘️ Tier 0: Grundlæggende Samfund</h3>
+                <div class="tier-description">
+                    <p>De mest basale bygninger til at starte dit samfund</p>
+                    <p><strong>Krav:</strong> Ingen - automatisk ulåst</p>
+                </div>
+                <div class="tier-unlocks">
+                    <span class="unlock-item">🏗️ Grundlæggende bygninger</span>
+                </div>
+            </div>
+
+            <!-- Tier 1 -->
+            <div class="tier-section" id="tier-1">
+                <div class="tier-status locked" id="tier-1-status">🔒 Låst</div>
+                <h3>📐 Tier 1: Byudvikling</h3>
+                <div class="tier-description">
+                    <p>Lær at udvide din by med flere byggepladser</p>
+                    <p><strong>Krav:</strong> 100 forskningspoint</p>
+                    <p><strong>Kost:</strong> 100 forskningspoint</p>
+                </div>
+                <div class="tier-unlocks">
+                    <span class="unlock-item">🏗️ Byudvidelse</span>
+                </div>
+                <button class="research-btn" id="research-tier-1" onclick="researchTier(1)" disabled>
+                    🔬 Forsk Tier 1 (100 point)
+                </button>
+            </div>
+        </div>
+
+        <div class="research-history">
+            <h3>📚 Forskningshistorie</h3>
+            <div id="research-history-list">
+                <p><em>Ingen forskning gennemført endnu</em></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="gamedata.js"></script>
+    <script src="stats.js"></script>
+    <script src="research.js"></script>
+    <script src="game-logic.js"></script>
+    <script>
+        // Forsk en tier
+        function researchTier(tier) {
+            if (researchSystem.researchTier(tier)) {
+                updateResearchUI();
+                alert(`🎉 Tier ${tier} forskning fuldført!\nNye funktioner er nu tilgængelige.`);
+                
+                // Opdater expansion panel hvis det er tier 1
+                if (tier === 1 && typeof updateExpansionPanel === 'function') {
+                    updateExpansionPanel();
+                }
+            } else {
+                alert('Du kan ikke forske denne tier endnu. Tjek kravene.');
+            }
+        }
+
+        // Opdater research UI
+        function updateResearchUI() {
+            const researchPoints = researchSystem.getResearchPoints();
+            const currentTier = researchSystem.researchData.currentTier;
+            
+            // Opdater info cards
+            document.getElementById('research-points').textContent = researchPoints;
+            document.getElementById('current-tier').textContent = currentTier;
+            
+            // Opdater Tier 1 status
+            const tier1Section = document.getElementById('tier-1');
+            const tier1Status = document.getElementById('tier-1-status');
+            const tier1Button = document.getElementById('research-tier-1');
+            
+            if (researchSystem.isTierUnlocked(1)) {
+                tier1Section.classList.add('unlocked');
+                tier1Status.textContent = '✅ Ulåst';
+                tier1Status.className = 'tier-status unlocked';
+                tier1Button.style.display = 'none';
+            } else if (researchSystem.canResearchTier(1)) {
+                tier1Status.textContent = '🔬 Kan forskes';
+                tier1Status.className = 'tier-status available';
+                tier1Button.disabled = false;
+            } else {
+                tier1Status.textContent = '🔒 Låst';
+                tier1Status.className = 'tier-status locked';
+                tier1Button.disabled = true;
+            }
+            
+            // Opdater forskningshistorie
+            updateResearchHistory();
+        }
+
+        // Opdater forskningshistorie
+        function updateResearchHistory() {
+            const historyList = document.getElementById('research-history-list');
+            const history = researchSystem.researchData.researchHistory;
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<p><em>Ingen forskning gennemført endnu</em></p>';
+                return;
+            }
+            
+            let html = '';
+            history.forEach(entry => {
+                const date = new Date(entry.timestamp).toLocaleDateString('da-DK');
+                html += `
+                    <div class="research-entry">
+                        <strong>Tier ${entry.tier}: ${entry.name}</strong>
+                        <small>${date}</small>
+                    </div>
+                `;
+            });
+            
+            historyList.innerHTML = html;
+        }
+
+        // Initialiser siden
+        document.addEventListener('DOMContentLoaded', function() {
+            updateResearchUI();
+            
+            // Opdater hvert 5. sekund for at vise nye forskningspoint
+            setInterval(updateResearchUI, 5000);
+        });
+    </script>
+</body>
+</html>

@@ -269,3 +269,113 @@ document.head.appendChild(styleSheet);
 // Eksporter til global scope
 window.GameStats = GameStats;
 window.showStatsModal = showStatsModal;
+
+// Initialiser statistik-siden
+function initializeStats() {
+    setTimeout(() => {
+        updateStatsPage();
+    }, 100); // Kort delay for at sikre gameState er indlæst
+}
+
+// Opdater statistik-siden
+function updateStatsPage() {
+    // Sikre at gameState eksisterer
+    if (!window.gameState) {
+        console.log('gameState not ready yet');
+        return;
+    }
+    
+    // Opdater økonomi stats
+    const statMoney = document.getElementById('stat-money');
+    const statIncome = document.getElementById('stat-income');
+    const statExpenses = document.getElementById('stat-expenses');
+    
+    if (statMoney) {
+        statMoney.textContent = gameState.money.toLocaleString() + ' kr';
+    }
+    
+    // Beregn indtægt og udgifter
+    const income = gameState.population * 10;
+    let expenses = 0;
+    
+    Object.values(gameState.buildings).forEach(buildingType => {
+        const building = BUILDINGS[buildingType];
+        if (building && building.effects && building.effects.maintenance) {
+            expenses += building.effects.maintenance;
+        }
+    });
+    
+    if (statIncome) {
+        statIncome.textContent = income.toLocaleString() + ' kr';
+    }
+    
+    if (statExpenses) {
+        statExpenses.textContent = expenses.toLocaleString() + ' kr';
+    }
+    
+    // Opdater befolkning stats
+    const statPopulation = document.getElementById('stat-population');
+    const statHappiness = document.getElementById('stat-happiness');
+    const statHouses = document.getElementById('stat-houses');
+    
+    if (statPopulation) {
+        statPopulation.textContent = gameState.population.toLocaleString();
+    }
+    
+    if (statHappiness) {
+        statHappiness.textContent = gameState.happiness + '%';
+    }
+    
+    // Tæl bygninger
+    const buildings = Object.values(gameState.buildings);
+    const buildingCounts = {
+        road: buildings.filter(b => b === 'road').length,
+        house: buildings.filter(b => b === 'house').length,
+        powerplant: buildings.filter(b => b === 'powerplant').length,
+        hospital: buildings.filter(b => b === 'hospital').length,
+        school: buildings.filter(b => b === 'school').length
+    };
+    
+    if (statHouses) {
+        statHouses.textContent = buildingCounts.house.toString();
+    }
+    
+    // Opdater bygnings stats
+    const statRoads = document.getElementById('stat-roads');
+    const statPowerplants = document.getElementById('stat-powerplants');
+    const statHospitals = document.getElementById('stat-hospitals');
+    const statSchools = document.getElementById('stat-schools');
+    
+    if (statRoads) {
+        statRoads.textContent = buildingCounts.road.toString();
+    }
+    
+    if (statPowerplants) {
+        statPowerplants.textContent = buildingCounts.powerplant.toString();
+    }
+    
+    if (statHospitals) {
+        statHospitals.textContent = buildingCounts.hospital.toString();
+    }
+    
+    if (statSchools) {
+        statSchools.textContent = buildingCounts.school.toString();
+    }
+    
+    // Opdater forskning stats
+    const statExpansion = document.getElementById('stat-expansion');
+    const statSlots = document.getElementById('stat-slots');
+    
+    if (statExpansion) {
+        const isResearched = gameState.research && gameState.research.cityExpansion;
+        statExpansion.textContent = isResearched ? '✅ Færdig' : '❌ Ikke forsket';
+    }
+    
+    if (statSlots) {
+        statSlots.textContent = gameState.maxBuildingSlots + '/12';
+    }
+}
+
+// Eksporter funktioner
+window.initializeStats = initializeStats;
+window.updateStatsPage = updateStatsPage;
