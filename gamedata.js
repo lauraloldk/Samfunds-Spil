@@ -1,48 +1,68 @@
 // Game data - bygninger, regler, og politik
 const BUILDINGS = {
+    road: {
+        name: 'Vej',
+        icon: '🛣️',
+        cost: 100,
+        staminaCost: 1,
+        description: 'Grundlaget for andre bygninger - ingen andre bygninger kan bygges uden veje',
+        effects: {
+            happiness: 5,
+            maintenance: 25
+        },
+        requiresRoad: false
+    },
     house: {
         name: 'Hus',
         icon: '🏠',
         cost: 500,
+        staminaCost: 2,
         description: 'Giver plads til 10 borgere',
         effects: {
             population: 10,
             happiness: 2,
-            maintenance: 10
-        }
+            maintenance: 50
+        },
+        requiresRoad: true
     },
     powerplant: {
         name: 'Kraftværk',
         icon: '⚡',
         cost: 2000,
+        staminaCost: 3,
         description: 'Giver strøm til byen',
         effects: {
             power: 100,
             happiness: -5, // Forurening
-            maintenance: 50
-        }
+            maintenance: 200
+        },
+        requiresRoad: true
     },
     hospital: {
         name: 'Hospital',
         icon: '🏥',
         cost: 3000,
+        staminaCost: 4,
         description: 'Forbedrer borgernes sundhed',
         effects: {
             health: 50,
             happiness: 15,
-            maintenance: 75
-        }
+            maintenance: 300
+        },
+        requiresRoad: true
     },
     school: {
         name: 'Skole',
         icon: '🏫',
         cost: 1500,
+        staminaCost: 3,
         description: 'Giver uddannelse til borgerne',
         effects: {
             education: 30,
             happiness: 10,
-            maintenance: 40
-        }
+            maintenance: 150
+        },
+        requiresRoad: true
     }
 };
 
@@ -105,6 +125,11 @@ const EVENTS = {
 
 // Basis behov som borgerne skal have opfyldt
 const CITIZEN_NEEDS = {
+    roads: {
+        name: 'Veje',
+        critical: true,
+        per_capita: 0.05 // 1 vej per 20 borgere
+    },
     housing: {
         name: 'Bolig',
         critical: true,
@@ -139,12 +164,16 @@ function calculateSocietyScore(gameState) {
     
     // Bonus for opfyldte behov
     const buildings = Object.values(gameState.buildings);
+    const roadCount = buildings.filter(b => b === 'road').length;
     const houseCount = buildings.filter(b => b === 'house').length;
     const powerplantCount = buildings.filter(b => b === 'powerplant').length;
     const hospitalCount = buildings.filter(b => b === 'hospital').length;
     const schoolCount = buildings.filter(b => b === 'school').length;
     
     // Tjek om grundlæggende behov er opfyldt
+    if (roadCount >= gameState.population * CITIZEN_NEEDS.roads.per_capita) {
+        score += 30;
+    }
     if (houseCount >= gameState.population * CITIZEN_NEEDS.housing.per_capita) {
         score += 50;
     }

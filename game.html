@@ -1,0 +1,92 @@
+<div class="city-view">
+    <h2>🏙️ Din By</h2>
+    <div class="buildings-grid">
+        <div class="building-slot" id="slot-1">
+            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+        </div>
+        <div class="building-slot" id="slot-2">
+            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+        </div>
+        <div class="building-slot" id="slot-3">
+            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+        </div>
+        <div class="building-slot" id="slot-4">
+            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+        </div>
+        <div class="building-slot" id="slot-5">
+            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+        </div>
+        <div class="building-slot" id="slot-6">
+            <div class="empty-slot">Tom grund<br>Klik for at bygge</div>
+        </div>
+    </div>
+</div>
+
+<div class="sidebar">
+    <div class="actions-panel">
+        <h3>🏗️ Byg</h3>
+        <button class="build-btn" onclick="selectBuilding('road')">
+            🛣️ Vej (100 kr, 1 💪)<br>
+            <small>Grundlag for andre bygninger</small>
+        </button>
+        <button class="build-btn" onclick="selectBuilding('house')">
+            🏠 Hus (500 kr, 2 💪)<br>
+            <small>+10 befolkning (kræver vej)</small>
+        </button>
+        <button class="build-btn" onclick="selectBuilding('powerplant')">
+            ⚡ Kraftværk (2000 kr, 3 💪)<br>
+            <small>Giver strøm (kræver vej)</small>
+        </button>
+        <button class="build-btn" onclick="selectBuilding('hospital')">
+            🏥 Hospital (3000 kr, 4 💪)<br>
+            <small>Forbedrer sundhed (kræver vej)</small>
+        </button>
+        <button class="build-btn" onclick="selectBuilding('school')">
+            🏫 Skole (1500 kr, 3 💪)<br>
+            <small>Giver uddannelse (kræver vej)</small>
+        </button>
+    </div>
+
+    <div class="status-panel">
+        <h3>📊 Status</h3>
+        <div class="status-item">
+            <span>🛣️ Veje:</span>
+            <span id="road-status" class="status-bad">Ingen</span>
+        </div>
+        <div class="status-item">
+            <span>⚡ Strøm:</span>
+            <span id="power-status" class="status-bad">Ingen</span>
+        </div>
+        <div class="status-item">
+            <span>🏥 Sundhed:</span>
+            <span id="health-status" class="status-bad">Dårlig</span>
+        </div>
+        <div class="status-item">
+            <span>📚 Uddannelse:</span>
+            <span id="education-status" class="status-bad">Ingen</span>
+        </div>
+        <div class="status-item">
+            <span>🏠 Boliger:</span>
+            <span id="housing-status" class="status-bad">Få</span>
+        </div>
+    </div>
+
+    <div class="economy-panel">
+        <h3>💰 Økonomi</h3>
+        <div class="status-item">
+            <span>Årlig indtægt:</span>
+            <span id="annual-income" class="status-neutral">0 kr</span>
+        </div>
+        <div class="status-item">
+            <span>Årlige udgifter:</span>
+            <span id="annual-expenses" class="status-neutral">0 kr</span>
+        </div>
+        <div class="status-item">
+            <span>Netto resultat:</span>
+            <span id="net-result" class="status-neutral">0 kr</span>
+        </div>
+        <button class="build-btn" onclick="nextYear()" style="margin-top: 10px;">
+            📅 Næste År
+        </button>
+    </div>
+</div>
