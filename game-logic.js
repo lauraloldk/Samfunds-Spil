@@ -516,6 +516,12 @@ function nextTurn() {
         populationData = populationManager.processPopulationTurn();
     }
     
+    // Proces årlige events (hvis event system er tilgængeligt)
+    let yearlyEvents = [];
+    if (window.eventManager) {
+        yearlyEvents = eventManager.processYearlyEvents();
+    }
+    
     // Vis feedback
     let message = `År ${window.gameState.year}\n`;
     message += `Stamina: ${oldStamina} → ${window.gameState.stamina}\n`;
@@ -570,12 +576,29 @@ function nextTurn() {
         }
     }
     
+    // Tilføj event-information
+    if (yearlyEvents.length > 0) {
+        message += `\n📰 EVENTS:\n`;
+        yearlyEvents.forEach(event => {
+            message += `${event.name}: ${event.message}\n`;
+        });
+    }
+    
     if (netResult < 0) {
         message += `\n💸 Du har underskud! Byg flere boliger for at øge indtægten.`;
     }
     
     updateUI();
     saveGameData();
+    
+    // Vis event notifikationer
+    if (yearlyEvents.length > 0) {
+        yearlyEvents.forEach((event, index) => {
+            setTimeout(() => {
+                eventManager.showEventNotification(event);
+            }, index * 1000); // Vis med 1 sekunds mellemrum
+        });
+    }
     
     // Tjek for bankrot
     setTimeout(() => {

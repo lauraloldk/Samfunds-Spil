@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Event System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #4caf50;
+        }
+        .test-input {
+            margin: 10px 0;
+        }
+        .test-input label {
+            display: inline-block;
+            width: 120px;
+            margin-right: 10px;
+        }
+        .test-input input, .test-input select {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        button {
+            background: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .event-preview {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Event System</h1>
+    
+    <div class="test-container">
+        <h2>Event System Test</h2>
+        
+        <div class="test-input">
+            <label>Tier:</label>
+            <select id="tier">
+                <option value="0">Tier 0</option>
+                <option value="1" selected>Tier 1</option>
+                <option value="2">Tier 2</option>
+            </select>
+        </div>
+        
+        <div class="test-input">
+            <label>Befolkning:</label>
+            <input type="number" id="population" value="100" min="0">
+        </div>
+        
+        <div class="test-input">
+            <label>Tilfredshed:</label>
+            <input type="number" id="happiness" value="75" min="0" max="100">
+        </div>
+        
+        <div class="test-input">
+            <label>Antal Hospitaler:</label>
+            <input type="number" id="hospitals" value="0" min="0">
+        </div>
+        
+        <button onclick="testEventCalculation()">Beregn Event Chance</button>
+        <button onclick="simulateEvents()">Simulér Events</button>
+        
+        <div id="result"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Tilgængelige Events (Tier 1)</h2>
+        <div id="available-events"></div>
+    </div>
+
+    <script src="gamedata.js"></script>
+    <script src="game-logic.js"></script>
+    <script src="events.js"></script>
+    <script>
+        // Test event-systemet
+        function testEventCalculation() {
+            const tier = parseInt(document.getElementById('tier').value);
+            const population = parseInt(document.getElementById('population').value);
+            const happiness = parseInt(document.getElementById('happiness').value);
+            const hospitals = parseInt(document.getElementById('hospitals').value);
+            
+            // Setup mock gameState
+            window.gameState = {
+                population: population,
+                happiness: happiness,
+                buildings: {}
+            };
+            
+            // Tilføj hospitaler
+            for (let i = 0; i < hospitals; i++) {
+                window.gameState.buildings[`hospital_${i}`] = 'hospital';
+            }
+            
+            // Setup mock research data
+            window.gameState.researchData = {
+                currentTier: tier
+            };
+            
+            // Beregn event count
+            const eventCount = window.eventManager.calculateEventCount(tier, population);
+            
+            // Få tilgængelige events
+            const availableEvents = window.eventManager.availableEvents[`tier${tier}`] || [];
+            const validEvents = availableEvents.filter(event => window.eventManager.canEventOccur(event));
+            
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <div class="test-result">
+                    <h3>Event Beregning:</h3>
+                    <p><strong>Tier:</strong> ${tier}</p>
+                    <p><strong>Befolkning:</strong> ${population}</p>
+                    <p><strong>Tilfredshed:</strong> ${happiness}%</p>
+                    <p><strong>Hospitaler:</strong> ${hospitals}</p>
+                    <p><strong>Forventede events per år:</strong> 0-${eventCount}</p>
+                    <p><strong>Tilgængelige events:</strong> ${availableEvents.length}</p>
+                    <p><strong>Gyldige events:</strong> ${validEvents.length}</p>
+                    <p><strong>Gyldige event typer:</strong> ${validEvents.map(e => e.name).join(', ')}</p>
+                </div>
+            `;
+        }
+        
+        function simulateEvents() {
+            testEventCalculation(); // Setup state
+            
+            // Simulér events
+            const events = window.eventManager.processYearlyEvents();
+            
+            const result = document.getElementById('result');
+            let html = result.innerHTML;
+            
+            html += `
+                <div class="test-result">
+                    <h3>Simulerede Events:</h3>
+                    <p><strong>Antal events:</strong> ${events.length}</p>
+            `;
+            
+            events.forEach(event => {
+                html += `
+                    <div class="event-preview">
+                        <h4>${event.name}</h4>
+                        <p>${event.message}</p>
+                        <p><strong>Effekter:</strong></p>
+                        <ul>
+                            ${event.effects.population ? `<li>Befolkning: ${event.effects.population > 0 ? '+' : ''}${event.effects.population}</li>` : ''}
+                            ${event.effects.happiness ? `<li>Tilfredshed: ${event.effects.happiness > 0 ? '+' : ''}${event.effects.happiness}%</li>` : ''}
+                            ${event.effects.money ? `<li>Penge: ${event.effects.money > 0 ? '+' : ''}${event.effects.money.toLocaleString()} kr</li>` : ''}
+                        </ul>
+                    </div>
+                `;
+            });
+            
+            html += `</div>`;
+            result.innerHTML = html;
+        }
+        
+        function showAvailableEvents() {
+            const tier1Events = window.eventManager.availableEvents.tier1;
+            const container = document.getElementById('available-events');
+            
+            let html = '';
+            tier1Events.forEach(event => {
+                html += `
+                    <div class="event-preview">
+                        <h4>${event.name}</h4>
+                        <p>${event.description}</p>
+                        <p><strong>Type:</strong> ${event.type === 'positive' ? '✅ Positiv' : '❌ Negativ'}</p>
+                        <p><strong>Vægt:</strong> ${event.weight}%</p>
+                        <p><strong>Cooldown:</strong> ${event.cooldown} år</p>
+                        <p><strong>Krav:</strong></p>
+                        <ul>
+                            ${event.requirements.minPopulation ? `<li>Min befolkning: ${event.requirements.minPopulation}</li>` : ''}
+                            ${event.requirements.minHappiness ? `<li>Min tilfredshed: ${event.requirements.minHappiness}%</li>` : ''}
+                            ${event.requirements.maxHospitals ? `<li>Max hospitaler: ${event.requirements.maxHospitals}</li>` : ''}
+                        </ul>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Initialiser tests
+        window.onload = function() {
+            testEventCalculation();
+            showAvailableEvents();
+        };
+    </script>
+</body>
+</html>

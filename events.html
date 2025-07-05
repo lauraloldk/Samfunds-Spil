@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events - Samfunds Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📰 Events Historik</h1>
+            <nav>
+                <a href="index.html">🏠 Hjem</a>
+                <a href="game.html">🎮 Spil</a>
+                <a href="research.html">🔬 Forskning</a>
+                <a href="events.html" class="active">📰 Events</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="events-container">
+                <div class="events-header">
+                    <h2>📊 Event Statistikker</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>📈 Totalt</h3>
+                            <div class="stat-value" id="total-events">0</div>
+                            <div class="stat-label">Events</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>✅ Positive</h3>
+                            <div class="stat-value" id="positive-events">0</div>
+                            <div class="stat-label">Gode Events</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>❌ Negative</h3>
+                            <div class="stat-value" id="negative-events">0</div>
+                            <div class="stat-label">Dårlige Events</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>🎯 Mest Almindelige</h3>
+                            <div class="stat-value" id="most-common-event">-</div>
+                            <div class="stat-label">Event Type</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="events-controls">
+                    <h3>🔍 Filtrer Events</h3>
+                    <div class="filter-controls">
+                        <label>
+                            <input type="checkbox" id="show-positive" checked> 
+                            ✅ Positive Events
+                        </label>
+                        <label>
+                            <input type="checkbox" id="show-negative" checked> 
+                            ❌ Negative Events
+                        </label>
+                        <label>
+                            Vis sidste: 
+                            <select id="years-filter">
+                                <option value="5">5 år</option>
+                                <option value="10" selected>10 år</option>
+                                <option value="20">20 år</option>
+                                <option value="50">50 år</option>
+                                <option value="100">Alle</option>
+                            </select>
+                        </label>
+                        <button onclick="updateEventHistory()" class="refresh-btn">🔄 Opdater</button>
+                    </div>
+                </div>
+
+                <div class="events-timeline">
+                    <h3>📅 Event Historik</h3>
+                    <div id="events-list">
+                        <div class="no-events">
+                            <p>Ingen events endnu...</p>
+                            <p><small>Events begynder at ske når du når Tier 1 forskning!</small></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="events-info">
+                    <h3>ℹ️ Om Events</h3>
+                    <div class="info-content">
+                        <p><strong>Hvordan fungerer events?</strong></p>
+                        <ul>
+                            <li><strong>Tier 0:</strong> Ingen events kan ske</li>
+                            <li><strong>Tier 1:</strong> 0-5 events per år (afhænger af byens størrelse)</li>
+                            <li><strong>Tier 2+:</strong> Flere events bliver tilgængelige</li>
+                        </ul>
+                        
+                        <p><strong>Event Typer (Tier 1):</strong></p>
+                        <ul>
+                            <li>👶 <strong>Fødsler:</strong> Baby boom øger befolkning og tilfredshed</li>
+                            <li>⚰️ <strong>Dødsfald:</strong> Naturlige dødsfald reducerer befolkning</li>
+                            <li>🦠 <strong>Epidemi:</strong> Sygdom rammer byen (mindre sandsynligt med hospitaler)</li>
+                            <li>🎉 <strong>Festival:</strong> Byfestival øger tilfredshed og giver penge</li>
+                            <li>🔥 <strong>Brand:</strong> Skader byens økonomi</li>
+                        </ul>
+                        
+                        <p><strong>Tips:</strong></p>
+                        <ul>
+                            <li>Større byer har flere events</li>
+                            <li>Høj tilfredshed øger chancen for positive events</li>
+                            <li>Hospitaler reducerer risiko for epidemier</li>
+                            <li>Events har cooldown-perioder</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="game-logic.js"></script>
+    <script src="events.js"></script>
+    <script>
+        // Opdater event historik
+        function updateEventHistory() {
+            if (!window.eventManager) {
+                console.log('Event manager not ready');
+                return;
+            }
+            
+            const yearsFilter = parseInt(document.getElementById('years-filter').value);
+            const showPositive = document.getElementById('show-positive').checked;
+            const showNegative = document.getElementById('show-negative').checked;
+            
+            let events = window.eventManager.getEventHistory(yearsFilter);
+            
+            // Filtrer efter type
+            events = events.filter(event => {
+                if (event.type === 'positive' && !showPositive) return false;
+                if (event.type === 'negative' && !showNegative) return false;
+                return true;
+            });
+            
+            const eventsList = document.getElementById('events-list');
+            
+            if (events.length === 0) {
+                eventsList.innerHTML = `
+                    <div class="no-events">
+                        <p>Ingen events matcher dine filtre...</p>
+                        <p><small>Prøv at justere filtrene eller spil videre for at opleve events!</small></p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sorter efter år (nyeste først)
+            events.sort((a, b) => b.year - a.year);
+            
+            let html = '';
+            events.forEach(event => {
+                const typeClass = event.type === 'positive' ? 'positive' : 'negative';
+                const typeIcon = event.type === 'positive' ? '✅' : '❌';
+                
+                html += `
+                    <div class="event-item ${typeClass}">
+                        <div class="event-header">
+                            <span class="event-year">År ${event.year}</span>
+                            <span class="event-type">${typeIcon}</span>
+                        </div>
+                        <div class="event-title">${event.name}</div>
+                        <div class="event-message">${event.message}</div>
+                        <div class="event-effects">
+                            ${event.effects.population ? `👥 ${event.effects.population > 0 ? '+' : ''}${event.effects.population} borgere` : ''}
+                            ${event.effects.happiness ? `😊 ${event.effects.happiness > 0 ? '+' : ''}${event.effects.happiness}% tilfredshed` : ''}
+                            ${event.effects.money ? `💰 ${event.effects.money > 0 ? '+' : ''}${event.effects.money.toLocaleString()} kr` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            eventsList.innerHTML = html;
+        }
+        
+        // Opdater statistikker
+        function updateEventStatistics() {
+            if (!window.eventManager) {
+                return;
+            }
+            
+            const stats = window.eventManager.getEventStatistics();
+            
+            document.getElementById('total-events').textContent = stats.totalEvents;
+            document.getElementById('positive-events').textContent = stats.positiveEvents;
+            document.getElementById('negative-events').textContent = stats.negativeEvents;
+            
+            // Find mest almindelige event navn
+            let mostCommonName = '-';
+            if (stats.mostCommonEvent && window.eventManager.availableEvents.tier1) {
+                const event = window.eventManager.availableEvents.tier1.find(e => e.id === stats.mostCommonEvent);
+                if (event) {
+                    mostCommonName = event.name;
+                }
+            }
+            document.getElementById('most-common-event').textContent = mostCommonName;
+        }
+        
+        // Event listeners
+        document.getElementById('show-positive').addEventListener('change', updateEventHistory);
+        document.getElementById('show-negative').addEventListener('change', updateEventHistory);
+        document.getElementById('years-filter').addEventListener('change', updateEventHistory);
+        
+        // Initialiser siden
+        function initializeEventsPage() {
+            // Indlæs spil data
+            if (typeof initializeGame === 'function') {
+                initializeGame();
+            }
+            
+            // Opdater efter kort forsinkelse
+            setTimeout(() => {
+                updateEventStatistics();
+                updateEventHistory();
+            }, 100);
+        }
+        
+        // Automatisk opdatering
+        setInterval(() => {
+            updateEventStatistics();
+            updateEventHistory();
+        }, 5000);
+        
+        // Start når siden er klar
+        window.addEventListener('load', initializeEventsPage);
+    </script>
+</body>
+</html>
