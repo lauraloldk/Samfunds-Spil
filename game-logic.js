@@ -146,19 +146,33 @@ function resetGame() {
     }
 }
 
+// Beregn maksimal stamina baseret på kraftværker
+function getMaxStamina() {
+    const buildings = Object.values(window.gameState.buildings);
+    const powerPlantCount = buildings.filter(b => getBuildingType(b) === 'powerplant').length;
+    
+    // Basis stamina: 10, + 10 per kraftværk
+    return 10 + (powerPlantCount * 10);
+}
+
 // Opdater UI baseret på gameState
 function updateUI() {
     // Opdater ressourcer i header
     document.getElementById('money').textContent = window.gameState.money;
     document.getElementById('population').textContent = window.gameState.population;
     document.getElementById('happiness').textContent = window.gameState.happiness;
-    document.getElementById('stamina').textContent = window.gameState.stamina;
+    
+    // Vis stamina som current/max
+    const maxStamina = getMaxStamina();
+    document.getElementById('stamina').textContent = `${window.gameState.stamina}/${maxStamina}`;
+    
     document.getElementById('year').textContent = window.gameState.year;
     
     // Opdater bygnings-grid hvis vi er på game-siden
     if (currentPage === 'game') {
         updateBuildingsGrid();
         updateEconomyDisplay();
+        updateTierUI(); // Opdater tier-baseret UI
         
         // Opdater buildings grid system
         if (window.buildingsGridManager) {
@@ -281,10 +295,15 @@ function updateStatusPanel() {
     
     // Boliger
     const houseCount = buildings.filter(b => getBuildingType(b) === 'house').length;
+    const townCount = buildings.filter(b => getBuildingType(b) === 'town').length;
+    const totalHousingUnits = houseCount + townCount;
     const housingStatus = document.getElementById('housing-status');
     if (housingStatus) {
-        if (houseCount > 0) {
-            housingStatus.textContent = `${houseCount} hus${houseCount > 1 ? 'e' : ''}`;
+        if (totalHousingUnits > 0) {
+            const housingText = [];
+            if (houseCount > 0) housingText.push(`${houseCount} hus${houseCount > 1 ? 'e' : ''}`);
+            if (townCount > 0) housingText.push(`${townCount} flæk${townCount > 1 ? 'ker' : 'ke'}`);
+            housingStatus.textContent = housingText.join(', ');
             housingStatus.className = 'status-good';
         } else {
             housingStatus.textContent = 'Ingen';
@@ -378,6 +397,12 @@ function buildBuilding(buildingType, slotId, customName = null) {
         return;
     }
     
+    // Tjek tier-krav
+    if (building.tier && !canBuildTier(building.tier)) {
+        alert(`Denne bygning kræver Tier ${building.tier} forskning!`);
+        return;
+    }
+    
     // Tjek om vi har råd og stamina
     if (window.gameState.money < building.cost) {
         alert('Ikke nok penge!');
@@ -423,6 +448,14 @@ function buildBuilding(buildingType, slotId, customName = null) {
             // Begræns tilfredshed mellem 0 og 100
             window.gameState.happiness = Math.max(0, Math.min(100, window.gameState.happiness));
         }
+        // Hvis bygningen øger max stamina, kan vi justere nuværende stamina
+        if (building.effects.maxStamina) {
+            // Øg nuværende stamina med forskellen hvis spilleren har mindre end max
+            const newMaxStamina = getMaxStamina();
+            if (window.gameState.stamina < newMaxStamina) {
+                window.gameState.stamina = Math.min(newMaxStamina, window.gameState.stamina + building.effects.maxStamina);
+            }
+        }
     }
     
     hideBuildingMenu();
@@ -457,6 +490,13 @@ function demolishBuilding(slotId) {
             if (building.effects.happiness) {
                 window.gameState.happiness -= building.effects.happiness;
                 window.gameState.happiness = Math.max(0, Math.min(100, window.gameState.happiness));
+            }
+            // Hvis bygningen reducerer max stamina, justér nuværende stamina
+            if (building.effects.maxStamina) {
+                const newMaxStamina = getMaxStamina() - building.effects.maxStamina;
+                if (window.gameState.stamina > newMaxStamina) {
+                    window.gameState.stamina = newMaxStamina;
+                }
             }
         }
         
@@ -513,7 +553,7 @@ function nextTurn() {
     
     // Regenerer stamina
     const oldStamina = window.gameState.stamina;
-    window.gameState.stamina = Math.min(10, window.gameState.stamina + 3);
+    window.gameState.stamina = Math.min(getMaxStamina(), window.gameState.stamina + 3);
     
     // Beregn indtægt og udgifter
     let income = window.gameState.population * 10; // 10 kr per borger (basis)
@@ -850,6 +890,96 @@ function getBuildingName(buildingData) {
     return buildingData.name || BUILDINGS[buildingData.type]?.name || buildingData.type; // Nye format
 }
 
+// Tjek om spilleren kan bygge bygninger fra en bestemt tier
+function canBuildTier(tier) {
+    if (!window.researchSystem) return tier === 0; // Kun grundlæggende bygninger hvis research system ikke er loaded
+    return window.researchSystem.isTierUnlocked(tier);
+}
+
+// Merger 3 "Lille Flække" til 1 "Flække"
+function mergeBuildings() {
+    const buildings = Object.entries(window.gameState.buildings);
+    const houseBuildings = buildings.filter(([slotId, building]) => {
+        return getBuildingType(building) === 'house';
+    });
+    
+    if (houseBuildings.length < 3) {
+        alert('Du skal have mindst 3 Lille Flække for at merge!');
+        return;
+    }
+    
+    // Tjek om Tier 2 er ulåst
+    if (!canBuildTier(2)) {
+        alert('Du skal have Tier 2 forskning for at merge bygninger!');
+        return;
+    }
+    
+    // Tag de første 3 huse
+    const housesToMerge = houseBuildings.slice(0, 3);
+    const firstSlot = housesToMerge[0][0];
+    const firstName = getBuildingName(housesToMerge[0][1]);
+    
+    // Slet de 3 huse
+    housesToMerge.forEach(([slotId, building]) => {
+        delete window.gameState.buildings[slotId];
+        // Træk befolkning fra
+        window.gameState.population -= BUILDINGS.house.effects.population;
+    });
+    
+    // Tilføj den nye flække i første slot
+    const newName = prompt(`Giv din nye Flække et navn:`, `${firstName} Flække`) || `${firstName} Flække`;
+    window.gameState.buildings[firstSlot] = {
+        type: 'town',
+        name: newName,
+        builtYear: window.gameState.year,
+        id: generateBuildingId()
+    };
+    
+    // Tilføj befolkning fra den nye flække
+    window.gameState.population += BUILDINGS.town.effects.population;
+    
+    // Opdater UI
+    updateUI();
+    alert(`🎉 Merge gennemført! ${newName} er nu bygget!`);
+}
+
+// Vis merge muligheder
+function showMergeOptions() {
+    const buildings = Object.entries(window.gameState.buildings);
+    const houseBuildings = buildings.filter(([slotId, building]) => {
+        return getBuildingType(building) === 'house';
+    });
+    
+    if (houseBuildings.length < 3) {
+        alert(`Du har ${houseBuildings.length} Lille Flække.\nDu skal have mindst 3 for at merge til 1 Flække.`);
+        return;
+    }
+    
+    const confirmMerge = confirm(`Du har ${houseBuildings.length} Lille Flække.\n\nVil du merge 3 af dem til 1 Flække?\n\n• Mister: 3 Lille Flække (36 befolkning)\n• Får: 1 Flække (17 befolkning)\n• Bonus: 10% reduktion i negative events\n\nDette er GRATIS og kan ikke fortrydes!`);
+    
+    if (confirmMerge) {
+        mergeBuildings();
+    }
+}
+
+// Opdater UI baseret på research tier
+function updateTierUI() {
+    // Vis/skjul Tier 2 bygninger
+    const townBtn = document.getElementById('town-btn');
+    const townMenuBtn = document.getElementById('town-menu-btn');
+    const mergePanel = document.getElementById('merge-panel');
+    
+    if (canBuildTier(2)) {
+        if (townBtn) townBtn.style.display = 'block';
+        if (townMenuBtn) townMenuBtn.style.display = 'block';
+        if (mergePanel) mergePanel.style.display = 'block';
+    } else {
+        if (townBtn) townBtn.style.display = 'none';
+        if (townMenuBtn) townMenuBtn.style.display = 'none';
+        if (mergePanel) mergePanel.style.display = 'none';
+    }
+}
+
 // Autosave hver 30 sekunder
 setInterval(function() {
     if (window.gameState) {
@@ -917,3 +1047,8 @@ window.syncResearchData = syncResearchData;
 window.getBuildingType = getBuildingType;
 window.getBuildingName = getBuildingName;
 window.generateBuildingId = generateBuildingId;
+// Export tier and merge functions
+window.canBuildTier = canBuildTier;
+window.mergeBuildings = mergeBuildings;
+window.showMergeOptions = showMergeOptions;
+window.updateTierUI = updateTierUI;

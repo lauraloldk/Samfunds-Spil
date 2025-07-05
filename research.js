@@ -15,6 +15,7 @@ class ResearchSystem {
                 name: "Grundlæggende Samfund",
                 description: "Start dit samfund med de mest basale bygninger",
                 cost: 0,
+                costType: 'free', // Gratis
                 requirements: [],
                 unlocks: ['basic_buildings'],
                 researchPoints: 0
@@ -22,10 +23,38 @@ class ResearchSystem {
             1: {
                 name: "Byudvikling",
                 description: "Lær at udvide din by med flere byggepladser",
-                cost: 100, // 100 forskningspoint
+                cost: 5000, // 5000 kr
+                costType: 'money', // Koster penge
                 requirements: ['basic_buildings'],
                 unlocks: ['city_expansion'],
+                researchPoints: 0
+            },
+            2: {
+                name: "Bysammenslutning",
+                description: "Lær at bygge større bebyggelser og merge eksisterende bygninger",
+                cost: 12, // 100 forskningspoint
+                costType: 'research', // Koster forskningspoint
+                requirements: ['city_expansion'],
+                unlocks: ['town_buildings', 'merge_buildings'],
                 researchPoints: 100
+            },
+            3: {
+                name: "Avanceret Byplanlægning",
+                description: "Unlåser avancerede bygninger og funktioner",
+                cost: 200, // 200 forskningspoint
+                costType: 'research', // Koster forskningspoint
+                requirements: ['town_buildings', 'merge_buildings'],
+                unlocks: ['advanced_buildings'],
+                researchPoints: 200
+            },
+            4: {
+                name: "Moderne Samfund",
+                description: "Det mest avancerede samfund med alle funktioner",
+                cost: 300, // 300 forskningspoint
+                costType: 'research', // Koster forskningspoint
+                requirements: ['advanced_buildings'],
+                unlocks: ['modern_buildings'],
+                researchPoints: 300
             }
         };
         
@@ -64,10 +93,16 @@ class ResearchSystem {
         if (!this.tiers[tier]) return false;
         
         const tierData = this.tiers[tier];
-        const availablePoints = this.getResearchPoints();
         
-        // Tjek om vi har nok forskningspoint
-        if (availablePoints < tierData.cost) return false;
+        // Tjek kost baseret på type
+        if (tierData.costType === 'money') {
+            // Tjek om vi har nok penge
+            if (window.gameState.money < tierData.cost) return false;
+        } else if (tierData.costType === 'research') {
+            // Tjek om vi har nok forskningspoint
+            const availablePoints = this.getResearchPoints();
+            if (availablePoints < tierData.cost) return false;
+        }
         
         // Tjek om alle requirements er opfyldt
         return tierData.requirements.every(req => this.isFeatureUnlocked(req));
@@ -81,6 +116,18 @@ class ResearchSystem {
         
         const tierData = this.tiers[tier];
         
+        // Træk kost fra baseret på type
+        if (tierData.costType === 'money') {
+            window.gameState.money -= tierData.cost;
+            // Opdater money display
+            if (typeof updateDisplay === 'function') {
+                updateDisplay();
+            }
+        } else if (tierData.costType === 'research') {
+            // Forskningspoint bruges ikke direkte, men vi noterer det
+            console.log(`Forskning af Tier ${tier} brugte ${tierData.cost} forskningspoint`);
+        }
+        
         // Lås tier op
         this.unlockTier(tier);
         
@@ -88,7 +135,9 @@ class ResearchSystem {
         this.researchData.researchHistory.push({
             tier: tier,
             name: tierData.name,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            cost: tierData.cost,
+            costType: tierData.costType
         });
         
         // Gem data

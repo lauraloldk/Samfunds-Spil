@@ -504,6 +504,7 @@ function updateStatsPage() {
     const buildingCounts = {
         road: buildings.filter(b => getBuildingType(b) === 'road').length,
         house: buildings.filter(b => getBuildingType(b) === 'house').length,
+        town: buildings.filter(b => getBuildingType(b) === 'town').length,
         powerplant: buildings.filter(b => getBuildingType(b) === 'powerplant').length,
         hospital: buildings.filter(b => getBuildingType(b) === 'hospital').length,
         school: buildings.filter(b => getBuildingType(b) === 'school').length

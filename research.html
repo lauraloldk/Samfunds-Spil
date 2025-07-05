@@ -254,14 +254,33 @@
                 <h3>📐 Tier 1: Byudvikling</h3>
                 <div class="tier-description">
                     <p>Lær at udvide din by med flere byggepladser</p>
-                    <p><strong>Krav:</strong> 100 forskningspoint</p>
-                    <p><strong>Kost:</strong> 100 forskningspoint</p>
+                    <p><strong>Krav:</strong> Grundlæggende samfund</p>
+                    <p><strong>Kost:</strong> 5000 kr</p>
                 </div>
                 <div class="tier-unlocks">
                     <span class="unlock-item">🏗️ Byudvidelse</span>
                 </div>
                 <button class="research-btn" id="research-tier-1" onclick="researchTier(1)" disabled>
-                    🔬 Forsk Tier 1 (100 point)
+                    � Forsk Tier 1 (5000 kr)
+                </button>
+            </div>
+
+            <!-- Tier 2 -->
+            <div class="tier-section" id="tier-2">
+                <div class="tier-status locked" id="tier-2-status">🔒 Låst</div>
+                <h3>🏘️ Tier 2: Bysammenslutning</h3>
+                <div class="tier-description">
+                    <p>Lær at bygge større bebyggelser og merge eksisterende bygninger</p>
+                    <p><strong>Krav:</strong> 12 forskningspoint og Tier 1 ulåst</p>
+                    <p><strong>Kost:</strong> 12 forskningspoint</p>
+                </div>
+                <div class="tier-unlocks">
+                    <span class="unlock-item">🏘️ Flække bygning</span>
+                    <span class="unlock-item">🔄 Merge bygninger</span>
+                    <span class="unlock-item">🛡️ Event beskyttelse</span>
+                </div>
+                <button class="research-btn" id="research-tier-2" onclick="researchTier(2)" disabled>
+                    🔬 Forsk Tier 2 (12 point)
                 </button>
             </div>
         </div>
@@ -289,6 +308,10 @@
                 if (tier === 1 && typeof updateExpansionPanel === 'function') {
                     updateExpansionPanel();
                 }
+                // Opdater tier UI hvis det er tier 2  
+                if (tier === 2 && typeof updateTierUI === 'function') {
+                    updateTierUI();
+                }
             } else {
                 alert('Du kan ikke forske denne tier endnu. Tjek kravene.');
             }
@@ -314,13 +337,33 @@
                 tier1Status.className = 'tier-status unlocked';
                 tier1Button.style.display = 'none';
             } else if (researchSystem.canResearchTier(1)) {
-                tier1Status.textContent = '🔬 Kan forskes';
+                tier1Status.textContent = '� Kan købes';
                 tier1Status.className = 'tier-status available';
                 tier1Button.disabled = false;
             } else {
-                tier1Status.textContent = '🔒 Låst';
+                tier1Status.textContent = '🔒 Låst (Mangler penge)';
                 tier1Status.className = 'tier-status locked';
                 tier1Button.disabled = true;
+            }
+            
+            // Opdater Tier 2 status
+            const tier2Section = document.getElementById('tier-2');
+            const tier2Status = document.getElementById('tier-2-status');
+            const tier2Button = document.getElementById('research-tier-2');
+            
+            if (researchSystem.isTierUnlocked(2)) {
+                tier2Section.classList.add('unlocked');
+                tier2Status.textContent = '✅ Ulåst';
+                tier2Status.className = 'tier-status unlocked';
+                tier2Button.style.display = 'none';
+            } else if (researchSystem.canResearchTier(2)) {
+                tier2Status.textContent = '🔬 Kan forskes';
+                tier2Status.className = 'tier-status available';
+                tier2Button.disabled = false;
+            } else {
+                tier2Status.textContent = '🔒 Låst (Mangler forskningspoint)';
+                tier2Status.className = 'tier-status locked';
+                tier2Button.disabled = true;
             }
             
             // Opdater forskningshistorie

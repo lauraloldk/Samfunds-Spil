@@ -283,6 +283,11 @@ class EventManager {
             return [];
         }
         
+        // Beregn event protection fra Flække bygninger
+        const buildings = Object.values(window.gameState.buildings);
+        const townCount = buildings.filter(b => getBuildingType(b) === 'town').length;
+        const eventProtection = townCount * 0.1; // 10% per Flække bygning
+        
         const selectedEvents = [];
         const eventPool = [...validEvents];
         
@@ -301,6 +306,19 @@ class EventManager {
             }
             
             if (selectedEvent) {
+                // Tjek event protection for negative events
+                if (selectedEvent.type === 'negative' && eventProtection > 0) {
+                    const protectionRoll = Math.random();
+                    if (protectionRoll < eventProtection) {
+                        console.log(`Event protection activated! ${selectedEvent.name} prevented by town protection.`);
+                        // Fjern event fra pool og spring over
+                        const index = eventPool.indexOf(selectedEvent);
+                        eventPool.splice(index, 1);
+                        i--; // Prøv igen med samme slot
+                        continue;
+                    }
+                }
+                
                 selectedEvents.push(selectedEvent);
                 // Fjern event fra pool så det ikke kan vælges igen samme år
                 const index = eventPool.indexOf(selectedEvent);

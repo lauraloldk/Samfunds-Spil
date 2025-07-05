@@ -39,6 +39,7 @@ class PopulationManager {
         const hospitalCount = buildings.filter(b => getBuildingType(b) === 'hospital').length;
         const schoolCount = buildings.filter(b => getBuildingType(b) === 'school').length;
         const houseCount = buildings.filter(b => getBuildingType(b) === 'house').length;
+        const townCount = buildings.filter(b => getBuildingType(b) === 'town').length;
 
         // Hospitaler forbedrer vækst
         growthRate += hospitalCount * 0.01;
@@ -47,7 +48,7 @@ class PopulationManager {
         growthRate += schoolCount * 0.008;
 
         // Begræns vækst hvis der ikke er nok boliger
-        const maxPopulation = houseCount * 12; // 12 per hus
+        const maxPopulation = (houseCount * 12) + (townCount * 17); // 12 per hus, 17 per town
         if (currentPop >= maxPopulation * 0.9) {
             growthRate *= 0.3; // Reduceret vækst når tæt på kapacitet
         }
@@ -67,6 +68,7 @@ class PopulationManager {
         // Beregn dækning for hver kategori
         const roadCount = buildings.filter(b => getBuildingType(b) === 'road').length;
         const houseCount = buildings.filter(b => getBuildingType(b) === 'house').length;
+        const townCount = buildings.filter(b => getBuildingType(b) === 'town').length;
         const powerplantCount = buildings.filter(b => getBuildingType(b) === 'powerplant').length;
         const hospitalCount = buildings.filter(b => getBuildingType(b) === 'hospital').length;
         const schoolCount = buildings.filter(b => getBuildingType(b) === 'school').length;
@@ -75,7 +77,8 @@ class PopulationManager {
         this.satisfactionFactors.roads = Math.min(100, (roadCount * 20 / Math.max(1, population)) * 100);
 
         // Boliger (direkte kapacitet)
-        this.satisfactionFactors.housing = Math.min(100, (houseCount * 12 / Math.max(1, population)) * 100);
+        const totalHousingCapacity = (houseCount * 12) + (townCount * 17);
+        this.satisfactionFactors.housing = Math.min(100, (totalHousingCapacity / Math.max(1, population)) * 100);
 
         // Strøm (1 kraftværk per 100 borgere)
         this.satisfactionFactors.power = Math.min(100, (powerplantCount * 100 / Math.max(1, population)) * 100);

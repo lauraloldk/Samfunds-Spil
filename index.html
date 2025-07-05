@@ -84,17 +84,64 @@
         
         async function loadPage(pageName) {
             try {
-                // Prøv først med fetch (virker med HTTP server)
-                if (window.location.protocol !== 'file:') {
-                    const response = await fetch(`${pageName}.html`);
-                    const html = await response.text();
-                    document.getElementById('page-content').innerHTML = html;
+                let html;
+                
+                // For research siden, prøv at loade research.html først
+                if (pageName === 'research') {
+                    if (window.location.protocol !== 'file:') {
+                        try {
+                            const response = await fetch('research.html');
+                            if (response.ok) {
+                                html = await response.text();
+                                // Clean up HTML for embedding
+                                html = html.replace(/<html[^>]*>|<\/html>/gi, '');
+                                html = html.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
+                                html = html.replace(/<body[^>]*>|<\/body>/gi, '');
+                                html = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+                                
+                                document.getElementById('page-content').innerHTML = html;
+                            } else {
+                                loadPageFallback(pageName);
+                            }
+                        } catch (error) {
+                            loadPageFallback(pageName);
+                        }
+                    } else {
+                        // For file:// protocol, brug en embedded version af research content
+                        loadResearchContent();
+                    }
                 } else {
-                    // Fallback for file:// protokol
-                    loadPageFallback(pageName);
+                    // For andre sider, prøv fetch hvis muligt, ellers fallback
+                    if (window.location.protocol !== 'file:') {
+                        try {
+                            const response = await fetch(`${pageName}.html`);
+                            if (response.ok) {
+                                html = await response.text();
+                                // Clean up HTML for embedding
+                                html = html.replace(/<html[^>]*>|<\/html>/gi, '');
+                                html = html.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
+                                html = html.replace(/<body[^>]*>|<\/body>/gi, '');
+                                html = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+                                
+                                document.getElementById('page-content').innerHTML = html;
+                            } else {
+                                loadPageFallback(pageName);
+                            }
+                        } catch (error) {
+                            loadPageFallback(pageName);
+                        }
+                    } else {
+                        // File protocol fallback
+                        loadPageFallback(pageName);
+                    }
                 }
                 
                 currentPage = pageName;
+                
+                // Clean up any page-specific intervals
+                if (typeof researchUpdateInterval !== 'undefined') {
+                    clearInterval(researchUpdateInterval);
+                }
                 
                 // Opdater aktiv menu-knap
                 document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -110,6 +157,194 @@
             }
         }
         
+        function loadResearchContent() {
+            // Embed research content directly for file:// protocol
+            const contentContainer = document.getElementById('page-content');
+            contentContainer.innerHTML = `
+                <div class="research-container">
+                    <div class="research-header">
+                        <h1>🔬 Forskning</h1>
+                        <p>Udvikl dit samfund gennem forskning og innovation</p>
+                    </div>
+
+                    <div class="research-info">
+                        <div class="info-card">
+                            <h3>🧪 Forskningspoint</h3>
+                            <div class="info-value" id="research-points">0</div>
+                            <p><small>1 per 10 indbyggere + 5 per skole</small></p>
+                        </div>
+                        <div class="info-card">
+                            <h3>🎯 Nuværende Tier</h3>
+                            <div class="info-value" id="current-tier">0</div>
+                        </div>
+                    </div>
+
+                    <div class="research-tiers">
+                        <!-- Tier 0 -->
+                        <div class="tier-section unlocked" id="tier-0">
+                            <div class="tier-status unlocked">✅ Ulåst</div>
+                            <h3>🏘️ Tier 0: Grundlæggende Samfund</h3>
+                            <div class="tier-description">
+                                <p>De mest basale bygninger til at starte dit samfund</p>
+                                <p><strong>Krav:</strong> Ingen - automatisk ulåst</p>
+                            </div>
+                            <div class="tier-unlocks">
+                                <span class="unlock-item">🏗️ Grundlæggende bygninger</span>
+                            </div>
+                        </div>
+
+                        <!-- Tier 1 -->
+                        <div class="tier-section" id="tier-1">
+                            <div class="tier-status locked" id="tier-1-status">🔒 Låst</div>
+                            <h3>📐 Tier 1: Byudvikling</h3>
+                            <div class="tier-description">
+                                <p>Lær at udvide din by med flere byggepladser</p>
+                                <p><strong>Krav:</strong> Grundlæggende samfund</p>
+                                <p><strong>Kost:</strong> 5000 kr</p>
+                            </div>
+                            <div class="tier-unlocks">
+                                <span class="unlock-item">🏗️ Byudvidelse</span>
+                            </div>
+                            <button class="research-btn" id="research-tier-1" onclick="researchTier(1)" disabled>
+                                � Forsk Tier 1 (5000 kr)
+                            </button>
+                        </div>
+
+                        <!-- Tier 2 -->
+                        <div class="tier-section" id="tier-2">
+                            <div class="tier-status locked" id="tier-2-status">🔒 Låst</div>
+                            <h3>🏘️ Tier 2: Bysammenslutning</h3>
+                            <div class="tier-description">
+                                <p>Lær at bygge større bebyggelser og merge eksisterende bygninger</p>
+                                <p><strong>Krav:</strong> 100 forskningspoint og Tier 1 ulåst</p>
+                                <p><strong>Kost:</strong> 100 forskningspoint</p>
+                            </div>
+                            <div class="tier-unlocks">
+                                <span class="unlock-item">🏘️ Flække bygning</span>
+                                <span class="unlock-item">🔄 Merge bygninger</span>
+                                <span class="unlock-item">🛡️ Event beskyttelse</span>
+                            </div>
+                            <button class="research-btn" id="research-tier-2" onclick="researchTier(2)" disabled>
+                                🔬 Forsk Tier 2 (100 point)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="research-history">
+                        <h3>📚 Forskningshistorie</h3>
+                        <div id="research-history-list">
+                            <p><em>Ingen forskning gennemført endnu</em></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Research functions for embedded content
+        function researchTier(tier) {
+            if (researchSystem.researchTier(tier)) {
+                updateResearchUI();
+                alert(`🎉 Tier ${tier} forskning fuldført!\nNye funktioner er nu tilgængelige.`);
+                
+                // Opdater expansion panel hvis det er tier 1
+                if (tier === 1 && typeof updateExpansionPanel === 'function') {
+                    updateExpansionPanel();
+                }
+                // Opdater tier UI hvis det er tier 2  
+                if (tier === 2 && typeof updateTierUI === 'function') {
+                    updateTierUI();
+                }
+            } else {
+                alert('Du kan ikke forske denne tier endnu. Tjek kravene.');
+            }
+        }
+
+        function updateResearchUI() {
+            if (currentPage !== 'research') return;
+            
+            const researchPoints = researchSystem.getResearchPoints();
+            const currentTier = researchSystem.researchData.currentTier;
+            
+            // Opdater info cards
+            const researchPointsElement = document.getElementById('research-points');
+            const currentTierElement = document.getElementById('current-tier');
+            
+            if (researchPointsElement) researchPointsElement.textContent = researchPoints;
+            if (currentTierElement) currentTierElement.textContent = currentTier;
+            
+            // Opdater Tier 1 status
+            const tier1Section = document.getElementById('tier-1');
+            const tier1Status = document.getElementById('tier-1-status');
+            const tier1Button = document.getElementById('research-tier-1');
+            
+            if (tier1Section && tier1Status && tier1Button) {
+                if (researchSystem.isTierUnlocked(1)) {
+                    tier1Section.classList.add('unlocked');
+                    tier1Status.textContent = '✅ Ulåst';
+                    tier1Status.className = 'tier-status unlocked';
+                    tier1Button.style.display = 'none';
+                } else if (researchSystem.canResearchTier(1)) {
+                    tier1Status.textContent = '� Kan købes';
+                    tier1Status.className = 'tier-status available';
+                    tier1Button.disabled = false;
+                } else {
+                    tier1Status.textContent = '🔒 Låst (Mangler penge)';
+                    tier1Status.className = 'tier-status locked';
+                    tier1Button.disabled = true;
+                }
+            }
+            
+            // Opdater Tier 2 status
+            const tier2Section = document.getElementById('tier-2');
+            const tier2Status = document.getElementById('tier-2-status');
+            const tier2Button = document.getElementById('research-tier-2');
+            
+            if (tier2Section && tier2Status && tier2Button) {
+                if (researchSystem.isTierUnlocked(2)) {
+                    tier2Section.classList.add('unlocked');
+                    tier2Status.textContent = '✅ Ulåst';
+                    tier2Status.className = 'tier-status unlocked';
+                    tier2Button.style.display = 'none';
+                } else if (researchSystem.canResearchTier(2)) {
+                    tier2Status.textContent = '🔬 Kan forskes';
+                    tier2Status.className = 'tier-status available';
+                    tier2Button.disabled = false;
+                } else {
+                    tier2Status.textContent = '🔒 Låst (Mangler forskningspoint)';
+                    tier2Status.className = 'tier-status locked';
+                    tier2Button.disabled = true;
+                }
+            }
+            
+            // Opdater forskningshistorie
+            updateResearchHistory();
+        }
+
+        function updateResearchHistory() {
+            const historyList = document.getElementById('research-history-list');
+            if (!historyList) return;
+            
+            const history = researchSystem.researchData.researchHistory;
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<p><em>Ingen forskning gennemført endnu</em></p>';
+                return;
+            }
+            
+            let html = '';
+            history.forEach(entry => {
+                const date = new Date(entry.timestamp).toLocaleDateString('da-DK');
+                html += `
+                    <div class="research-entry">
+                        <strong>Tier ${entry.tier}: ${entry.name}</strong>
+                        <small>${date}</small>
+                    </div>
+                `;
+            });
+            
+            historyList.innerHTML = html;
+        }
+
         function loadPageFallback(pageName) {
             const contentContainer = document.getElementById('page-content');
             let html = '';
@@ -163,9 +398,15 @@
                     }
                     break;
                 case 'research':
-                    if (typeof initializeResearch === 'function') {
-                        initializeResearch();
-                    }
+                    // Initialize research UI
+                    setTimeout(() => {
+                        updateResearchUI();
+                        // Also set up an interval to update research points every 5 seconds
+                        if (typeof researchUpdateInterval !== 'undefined') {
+                            clearInterval(researchUpdateInterval);
+                        }
+                        researchUpdateInterval = setInterval(updateResearchUI, 5000);
+                    }, 100);
                     break;
                 case 'settings':
                     if (typeof initializeSettings === 'function') {
@@ -242,6 +483,18 @@
                         <button class="build-btn" onclick="selectBuilding('school')">
                             🏫 Skole (1500 kr, 3 💪)<br>
                             <small>Giver uddannelse (kræver vej)</small>
+                        </button>
+                        <button class="build-btn tier-2-building" id="town-btn" onclick="selectBuilding('town')" style="display: none;">
+                            🏘️ Flække (1000 kr, 3 💪)<br>
+                            <small>+17 befolkning, mindre negative events</small>
+                        </button>
+                    </div>
+
+                    <div class="merge-panel" id="merge-panel" style="display: none;">
+                        <h3>🔄 Merge Bygninger</h3>
+                        <button class="merge-btn" onclick="showMergeOptions()">
+                            🔄 Merge 3 Lille Flække → 1 Flække<br>
+                            <small>Gratis upgrade til større bygning</small>
                         </button>
                     </div>
 
@@ -324,6 +577,10 @@
                                 🏫 Skole<br>
                                 <small>1500 kr, 3 💪</small>
                             </button>
+                            <button class="build-option tier-2-building" id="town-menu-btn" onclick="buildBuilding('town', document.getElementById('building-menu').dataset.slotId)" style="display: none;">
+                                🏘️ Flække<br>
+                                <small>1000 kr, 3 💪</small>
+                            </button>
                         </div>
                         <button class="close-btn" onclick="hideBuildingMenu()">Luk</button>
                     </div>
@@ -332,42 +589,14 @@
         }
         
         function getResearchHTML() {
+            // Fallback hvis loadResearchContent ikke virker
             return `
-                <div class="research-container">
-                    <h2>🔬 Forskning og Udvikling</h2>
-                    
-                    <div class="research-tiers">
-                        <div class="tier-section">
-                            <h3>Tier 0 - Grundlæggende (Altid tilgængelig)</h3>
-                            <div class="research-grid">
-                                <div class="research-card unlocked" id="basic-construction">
-                                    <h4>🏗️ Grundlæggende Byggeri</h4>
-                                    <p>Tillader byggeri af grundlæggende strukturer</p>
-                                    <div class="research-status completed">✅ Færdig</div>
-                                </div>
-                                <div class="research-card unlocked" id="basic-economy">
-                                    <h4>💰 Grundlæggende Økonomi</h4>
-                                    <p>Forståelse af penge og handel</p>
-                                    <div class="research-status completed">✅ Færdig</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="tier-section">
-                            <h3>Tier 1 - Byudvidelse</h3>
-                            <div class="research-grid">
-                                <div class="research-card" id="city-expansion">
-                                    <h4>📐 Byudvidelse</h4>
-                                    <p>Låser op for muligheden for at købe ekstra byggepladser</p>
-                                    <div class="research-cost">💰 Pris: 2.000 kr</div>
-                                    <div class="research-status" id="expansion-status">❌ Ikke forsket</div>
-                                    <button class="research-btn" onclick="doResearch('city-expansion')" id="expansion-btn">
-                                        🔬 Forsk
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="research-fallback">
+                    <h2>🔬 Forskning</h2>
+                    <p>Indlæser forskningssiden...</p>
+                    <p><small>Hvis denne besked forbliver synlig, prøv at genindlæse siden.</small></p>
+                    <button onclick="location.reload()">🔄 Genindlæs</button>
+                    <button onclick="loadResearchContent()">🔬 Indlæs forskning</button>
                 </div>
             `;
         }

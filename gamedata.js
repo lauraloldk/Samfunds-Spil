@@ -30,11 +30,12 @@ const BUILDINGS = {
         icon: '⚡',
         cost: 2000,
         staminaCost: 3,
-        description: 'Giver strøm til byen',
+        description: 'Giver strøm til byen og øger max stamina med 10',
         effects: {
             power: 100,
             happiness: -5, // Forurening
-            maintenance: 200
+            maintenance: 200,
+            maxStamina: 10 // Øger max stamina
         },
         requiresRoad: true
     },
@@ -63,6 +64,21 @@ const BUILDINGS = {
             maintenance: 150
         },
         requiresRoad: true
+    },
+    town: {
+        name: 'Flække',
+        icon: '🏘️',
+        cost: 1000,
+        staminaCost: 3,
+        description: 'En større bebyggelse der giver plads til 17 borgere og reducerer negative events med 10%',
+        effects: {
+            population: 17,
+            happiness: 5,
+            maintenance: 75,
+            eventProtection: 0.1 // 10% reduktion i negative events
+        },
+        requiresRoad: true,
+        tier: 2 // Kræver Tier 2 forskning
     }
 };
 
@@ -166,6 +182,7 @@ function calculateSocietyScore(gameState) {
     const buildings = Object.values(gameState.buildings);
     const roadCount = buildings.filter(b => getBuildingType(b) === 'road').length;
     const houseCount = buildings.filter(b => getBuildingType(b) === 'house').length;
+    const townCount = buildings.filter(b => getBuildingType(b) === 'town').length;
     const powerplantCount = buildings.filter(b => getBuildingType(b) === 'powerplant').length;
     const hospitalCount = buildings.filter(b => getBuildingType(b) === 'hospital').length;
     const schoolCount = buildings.filter(b => getBuildingType(b) === 'school').length;
@@ -174,7 +191,8 @@ function calculateSocietyScore(gameState) {
     if (roadCount >= gameState.population * CITIZEN_NEEDS.roads.per_capita) {
         score += 30;
     }
-    if (houseCount >= gameState.population * CITIZEN_NEEDS.housing.per_capita) {
+    const totalHousingCapacity = (houseCount * 12) + (townCount * 17);
+    if (totalHousingCapacity >= gameState.population * CITIZEN_NEEDS.housing.per_capita) {
         score += 50;
     }
     if (powerplantCount > 0) {
@@ -185,6 +203,11 @@ function calculateSocietyScore(gameState) {
     }
     if (schoolCount > 0) {
         score += 20;
+    }
+    
+    // Bonus for avancerede bygninger
+    if (townCount > 0) {
+        score += townCount * 15; // 15 point per Flække
     }
     
     return Math.round(score);

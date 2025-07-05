@@ -540,6 +540,50 @@ h1 {
     background: #e67e22;
 }
 
+/* Tier 2 specific styles */
+.tier-2-building {
+    background: #8e44ad;
+    border: 2px solid #9b59b6;
+}
+
+.tier-2-building:hover {
+    background: #7d3c98;
+    transform: translateY(-2px);
+}
+
+.merge-panel {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    margin-top: 20px;
+}
+
+.merge-btn {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 8px;
+    background: #f39c12;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9em;
+}
+
+.merge-btn:hover {
+    background: #e67e22;
+    transform: translateY(-2px);
+}
+
+.merge-btn:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .building-actions {
     margin-top: 10px;
     display: flex;
