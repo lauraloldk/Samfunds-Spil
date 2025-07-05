@@ -459,7 +459,7 @@ function updateStatsPage() {
             currentTier = window.researchSystem.researchData.currentTier;
         }
         
-        const schoolCount = Object.values(gameState.buildings).filter(b => b === 'school').length;
+        const schoolCount = Object.values(gameState.buildings).filter(b => getBuildingType(b) === 'school').length;
         const baseBonus = 1 + (2 * currentTier);
         const schoolBonus = schoolCount * 2 * Math.max(currentTier, 1);
         const bonusPerCitizen = baseBonus + schoolBonus;
@@ -470,7 +470,8 @@ function updateStatsPage() {
     
     let expenses = 0;
     
-    Object.values(gameState.buildings).forEach(buildingType => {
+    Object.values(gameState.buildings).forEach(buildingData => {
+        const buildingType = getBuildingType(buildingData);
         const building = BUILDINGS[buildingType];
         if (building && building.effects && building.effects.maintenance) {
             expenses += building.effects.maintenance;
@@ -501,11 +502,11 @@ function updateStatsPage() {
     // Tæl bygninger
     const buildings = Object.values(gameState.buildings);
     const buildingCounts = {
-        road: buildings.filter(b => b === 'road').length,
-        house: buildings.filter(b => b === 'house').length,
-        powerplant: buildings.filter(b => b === 'powerplant').length,
-        hospital: buildings.filter(b => b === 'hospital').length,
-        school: buildings.filter(b => b === 'school').length
+        road: buildings.filter(b => getBuildingType(b) === 'road').length,
+        house: buildings.filter(b => getBuildingType(b) === 'house').length,
+        powerplant: buildings.filter(b => getBuildingType(b) === 'powerplant').length,
+        hospital: buildings.filter(b => getBuildingType(b) === 'hospital').length,
+        school: buildings.filter(b => getBuildingType(b) === 'school').length
     };
     
     if (statHouses) {

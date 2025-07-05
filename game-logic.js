@@ -45,6 +45,7 @@ function loadGameData() {
                 year: loadedState.year || 1930,
                 buildings: loadedState.buildings || {},
                 maxBuildingSlots: loadedState.maxBuildingSlots || 6,
+                purchasedSlots: loadedState.purchasedSlots || 0,
                 research: {
                     cityExpansion: loadedState.research?.cityExpansion || false
                 }
@@ -158,6 +159,11 @@ function updateUI() {
     if (currentPage === 'game') {
         updateBuildingsGrid();
         updateEconomyDisplay();
+        
+        // Opdater buildings grid system
+        if (window.buildingsGridManager) {
+            buildingsGridManager.updateGridDisplay();
+        }
     }
     
     // Opdater research UI hvis vi er på research-siden
@@ -177,7 +183,8 @@ function updateEconomyDisplay() {
     const income = window.gameState.population * 10; // 10 kr per borger
     let maintenance = 0;
     
-    Object.values(window.gameState.buildings).forEach(buildingType => {
+    Object.values(window.gameState.buildings).forEach(buildingData => {
+        const buildingType = getBuildingType(buildingData);
         const building = BUILDINGS[buildingType];
         if (building && building.effects && building.effects.maintenance) {
             maintenance += building.effects.maintenance;
@@ -221,7 +228,7 @@ function updateStatusPanel() {
     const buildings = Object.values(window.gameState.buildings);
     
     // Veje
-    const roadCount = buildings.filter(b => b === 'road').length;
+    const roadCount = buildings.filter(b => getBuildingType(b) === 'road').length;
     const roadStatus = document.getElementById('road-status');
     if (roadStatus) {
         if (roadCount > 0) {
@@ -234,7 +241,7 @@ function updateStatusPanel() {
     }
     
     // Strøm
-    const powerplantCount = buildings.filter(b => b === 'powerplant').length;
+    const powerplantCount = buildings.filter(b => getBuildingType(b) === 'powerplant').length;
     const powerStatus = document.getElementById('power-status');
     if (powerStatus) {
         if (powerplantCount > 0) {
@@ -247,7 +254,7 @@ function updateStatusPanel() {
     }
     
     // Sundhed
-    const hospitalCount = buildings.filter(b => b === 'hospital').length;
+    const hospitalCount = buildings.filter(b => getBuildingType(b) === 'hospital').length;
     const healthStatus = document.getElementById('health-status');
     if (healthStatus) {
         if (hospitalCount > 0) {
@@ -260,7 +267,7 @@ function updateStatusPanel() {
     }
     
     // Uddannelse
-    const schoolCount = buildings.filter(b => b === 'school').length;
+    const schoolCount = buildings.filter(b => getBuildingType(b) === 'school').length;
     const educationStatus = document.getElementById('education-status');
     if (educationStatus) {
         if (schoolCount > 0) {
@@ -273,7 +280,7 @@ function updateStatusPanel() {
     }
     
     // Boliger
-    const houseCount = buildings.filter(b => b === 'house').length;
+    const houseCount = buildings.filter(b => getBuildingType(b) === 'house').length;
     const housingStatus = document.getElementById('housing-status');
     if (housingStatus) {
         if (houseCount > 0) {
@@ -297,13 +304,19 @@ function updateBuildingsGrid() {
                 
                 if (window.gameState.buildings[i]) {
                     // Slot har bygning
-                    const buildingType = window.gameState.buildings[i];
+                    const buildingData = window.gameState.buildings[i];
+                    const buildingType = getBuildingType(buildingData);
+                    const buildingName = getBuildingName(buildingData);
                     const building = BUILDINGS[buildingType];
+                    
                     slot.innerHTML = `
                         <div class="building">
                             <div class="building-icon">${building.icon}</div>
-                            <div class="building-name">${building.name}</div>
-                            <button class="demolish-btn" onclick="demolishBuilding(${i})">Riv ned</button>
+                            <div class="building-name">${buildingName}</div>
+                            <div class="building-actions">
+                                <button class="rename-btn" onclick="renameBuilding(${i})" title="Omdøb bygning">✏️</button>
+                                <button class="demolish-btn" onclick="demolishBuilding(${i})" title="Riv bygning ned">🗑️</button>
+                            </div>
                         </div>
                     `;
                 } else {
@@ -356,7 +369,7 @@ function setupBuildingMenuEventListeners() {
 }
 
 // Byg bygning
-function buildBuilding(buildingType, slotId) {
+function buildBuilding(buildingType, slotId, customName = null) {
     console.log('Building', buildingType, 'in slot', slotId);
     
     const building = BUILDINGS[buildingType];
@@ -382,10 +395,23 @@ function buildBuilding(buildingType, slotId) {
         return;
     }
     
+    // Spørg om navn hvis ikke givet
+    let buildingName = customName;
+    if (!buildingName) {
+        buildingName = prompt(`Giv din ${building.name} et navn:`, building.name) || building.name;
+    }
+    
     // Byg bygningen
     window.gameState.money -= building.cost;
     window.gameState.stamina -= building.staminaCost;
-    window.gameState.buildings[slotId] = buildingType;
+    
+    // Opret bygnings-objekt med navn og metadata
+    window.gameState.buildings[slotId] = {
+        type: buildingType,
+        name: buildingName,
+        builtYear: window.gameState.year,
+        id: generateBuildingId()
+    };
     
     // Anvend bygningens effekter
     if (building.effects) {
@@ -408,13 +434,18 @@ function buildBuilding(buildingType, slotId) {
 
 // Tjek om der er vejadgang
 function hasRoadAccess() {
-    return Object.values(window.gameState.buildings).includes('road');
+    return Object.values(window.gameState.buildings).some(buildingData => {
+        return getBuildingType(buildingData) === 'road';
+    });
 }
 
 // Riv bygning ned
 function demolishBuilding(slotId) {
-    if (confirm('Er du sikker på, at du vil rive bygningen ned?')) {
-        const buildingType = window.gameState.buildings[slotId];
+    const buildingData = window.gameState.buildings[slotId];
+    const buildingName = getBuildingName(buildingData);
+    
+    if (confirm(`Er du sikker på, at du vil rive "${buildingName}" ned?`)) {
+        const buildingType = getBuildingType(buildingData);
         const building = BUILDINGS[buildingType];
         
         if (building && building.effects) {
@@ -437,6 +468,38 @@ function demolishBuilding(slotId) {
         
         updateUI();
         saveGameData();
+        
+        console.log(`Building "${buildingName}" demolished from slot ${slotId}`);
+    }
+}
+
+// Omdøb bygning
+function renameBuilding(slotId) {
+    const buildingData = window.gameState.buildings[slotId];
+    if (!buildingData) {
+        console.error('No building found in slot', slotId);
+        return;
+    }
+    
+    const currentName = getBuildingName(buildingData);
+    const newName = prompt(`Nyt navn for bygningen:`, currentName);
+    
+    if (newName && newName.trim()) {
+        // Konverter til nyt format hvis det er gammelt format
+        if (typeof buildingData === 'string') {
+            window.gameState.buildings[slotId] = {
+                type: buildingData,
+                name: newName.trim(),
+                builtYear: window.gameState.year,
+                id: generateBuildingId()
+            };
+        } else {
+            buildingData.name = newName.trim();
+        }
+        
+        updateBuildingsGrid();
+        saveGameData();
+        console.log(`Building in slot ${slotId} renamed to "${newName}"`);
     }
 }
 
@@ -468,8 +531,8 @@ function nextTurn() {
         
         // Tæl antal skoler
         let schoolCount = 0;
-        Object.values(window.gameState.buildings).forEach(buildingType => {
-            if (buildingType === 'school') {
+        Object.values(window.gameState.buildings).forEach(buildingData => {
+            if (getBuildingType(buildingData) === 'school') {
                 schoolCount++;
             }
         });
@@ -493,7 +556,8 @@ function nextTurn() {
     
     let maintenance = 0;
     
-    Object.values(window.gameState.buildings).forEach(buildingType => {
+    Object.values(window.gameState.buildings).forEach(buildingData => {
+        const buildingType = getBuildingType(buildingData);
         const building = BUILDINGS[buildingType];
         if (building && building.effects && building.effects.maintenance) {
             maintenance += building.effects.maintenance;
@@ -522,6 +586,11 @@ function nextTurn() {
         yearlyEvents = eventManager.processYearlyEvents();
     }
     
+    // Opdater buildings grid system (hvis tilgængeligt)
+    if (window.buildingsGridManager) {
+        buildingsGridManager.updatePriceModifiers();
+    }
+    
     // Vis feedback
     let message = `År ${window.gameState.year}\n`;
     message += `Stamina: ${oldStamina} → ${window.gameState.stamina}\n`;
@@ -538,8 +607,8 @@ function nextTurn() {
         
         // Tæl antal skoler
         let schoolCount = 0;
-        Object.values(window.gameState.buildings).forEach(buildingType => {
-            if (buildingType === 'school') {
+        Object.values(window.gameState.buildings).forEach(buildingData => {
+            if (getBuildingType(buildingData) === 'school') {
                 schoolCount++;
             }
         });
@@ -645,6 +714,11 @@ function initializeGame() {
     // Synkroniser research data
     syncResearchData();
     
+    // Initialiser buildings grid system
+    if (window.buildingsGridManager) {
+        buildingsGridManager.initializeGrid();
+    }
+    
     // Opdater UI
     updateUI();
     
@@ -656,7 +730,8 @@ function initializeGame() {
     console.log('Game initialized successfully');
 }
 
-// Udvid byen (køb næste slot)
+// Udvid byen (køb næste slot) - DEPRECATED - Nu håndteret af BuildingsGridManager
+/*
 function expandCity() {
     // Find næste tilgængelige slot
     const nextSlot = window.gameState.maxBuildingSlots + 1;
@@ -698,6 +773,7 @@ function buyBuildingSlot(slotNumber) {
     
     alert(`Byggeplads ${slotNumber} købt! Du har nu ${window.gameState.maxBuildingSlots} byggepladser.`);
 }
+*/
 
 // Tjek og håndter bankrot
 function checkBankruptcy() {
@@ -714,21 +790,64 @@ function checkBankruptcy() {
             window.gameState.stamina = Math.max(1, window.gameState.stamina);
             updateUI();
             saveGameData();
-            alert('Du har fået et nødlån på 2.000 kr! 🏦\nBrug dem klogt til at bygge flere boliger og skabe indtægt.');
+            alert('Du har fået et nødlån på 2.000 kr! 🏦\nBrug dem klogt til at bygge flere boliger og skabe indtægten.');
         }
     }
 }
 
 // Synkroniser research data med gameState
 function syncResearchData() {
+    console.log('=== syncResearchData DEBUG ===');
+    console.log('researchSystem exists:', !!window.researchSystem);
+    console.log('researchSystem.researchData:', window.researchSystem?.researchData);
+    
     if (window.researchSystem && window.researchSystem.researchData) {
         // Gem research data i gameState for nem adgang
         if (!window.gameState.researchData) {
             window.gameState.researchData = {};
         }
         window.gameState.researchData = { ...window.researchSystem.researchData };
-        console.log('Research data synchronized. Current tier:', window.gameState.researchData.currentTier);
+        console.log('Research data synchronized from researchSystem. Current tier:', window.gameState.researchData.currentTier);
+    } else {
+        // Prøv at hente fra localStorage hvis researchSystem ikke er tilgængeligt
+        try {
+            const researchData = localStorage.getItem('research-data');
+            if (researchData) {
+                const parsed = JSON.parse(researchData);
+                if (!window.gameState.researchData) {
+                    window.gameState.researchData = {};
+                }
+                window.gameState.researchData = { ...parsed };
+                console.log('Research data synchronized from localStorage. Current tier:', window.gameState.researchData.currentTier);
+            }
+        } catch (e) {
+            console.log('Error reading research data from localStorage:', e);
+        }
     }
+    
+    console.log('Final gameState.researchData:', window.gameState.researchData);
+    console.log('===============================');
+}
+
+// Generer unique ID for bygninger
+function generateBuildingId() {
+    return 'building_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Få bygningstype fra bygnings-objekt (bagudkompatibilitet)
+function getBuildingType(buildingData) {
+    if (typeof buildingData === 'string') {
+        return buildingData; // Gamle format
+    }
+    return buildingData.type; // Nye format
+}
+
+// Få bygningsnavn fra bygnings-objekt
+function getBuildingName(buildingData) {
+    if (typeof buildingData === 'string') {
+        return BUILDINGS[buildingData]?.name || buildingData; // Gamle format
+    }
+    return buildingData.name || BUILDINGS[buildingData.type]?.name || buildingData.type; // Nye format
 }
 
 // Autosave hver 30 sekunder
@@ -786,10 +905,15 @@ window.showBuildingMenu = showBuildingMenu;
 window.hideBuildingMenu = hideBuildingMenu;
 window.buildBuilding = buildBuilding;
 window.demolishBuilding = demolishBuilding;
+window.renameBuilding = renameBuilding;
 window.nextTurn = nextTurn;
 window.selectBuilding = selectBuilding;
 window.initializeGame = initializeGame;
-window.expandCity = expandCity;
-window.buyBuildingSlot = buyBuildingSlot;
+// window.expandCity = expandCity; // Nu håndteret af BuildingsGridManager
+// window.buyBuildingSlot = buyBuildingSlot; // Nu håndteret af BuildingsGridManager
 window.setupBuildingMenuEventListeners = setupBuildingMenuEventListeners;
 window.syncResearchData = syncResearchData;
+// Export utility functions for building data
+window.getBuildingType = getBuildingType;
+window.getBuildingName = getBuildingName;
+window.generateBuildingId = generateBuildingId;

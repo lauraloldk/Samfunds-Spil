@@ -52,7 +52,7 @@ class ResearchSystem {
         
         // Bonus point for skoler
         const buildings = Object.values(gameState.buildings);
-        const schoolCount = buildings.filter(b => b === 'school').length;
+        const schoolCount = buildings.filter(b => getBuildingType(b) === 'school').length;
         points += schoolCount * 5;
         
         return points;
@@ -99,6 +99,7 @@ class ResearchSystem {
     
     // Lås en tier op (intern funktion)
     unlockTier(tier) {
+        const oldTier = this.researchData.currentTier;
         this.researchData.currentTier = Math.max(this.researchData.currentTier, tier);
         
         // Tilføj alle unlocks fra denne tier
@@ -108,6 +109,13 @@ class ResearchSystem {
                     this.researchData.unlockedFeatures.push(feature);
                 }
             });
+        }
+        
+        // Notify buildings grid system om tier upgrade
+        if (window.buildingsGridManager && tier > oldTier) {
+            setTimeout(() => {
+                buildingsGridManager.onTierUpgrade(tier);
+            }, 100);
         }
     }
     

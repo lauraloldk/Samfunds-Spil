@@ -36,9 +36,9 @@ class PopulationManager {
 
         // Modifikationer baseret på bygninger
         const buildings = Object.values(window.gameState.buildings);
-        const hospitalCount = buildings.filter(b => b === 'hospital').length;
-        const schoolCount = buildings.filter(b => b === 'school').length;
-        const houseCount = buildings.filter(b => b === 'house').length;
+        const hospitalCount = buildings.filter(b => getBuildingType(b) === 'hospital').length;
+        const schoolCount = buildings.filter(b => getBuildingType(b) === 'school').length;
+        const houseCount = buildings.filter(b => getBuildingType(b) === 'house').length;
 
         // Hospitaler forbedrer vækst
         growthRate += hospitalCount * 0.01;
@@ -65,11 +65,11 @@ class PopulationManager {
         const population = window.gameState.population;
 
         // Beregn dækning for hver kategori
-        const roadCount = buildings.filter(b => b === 'road').length;
-        const houseCount = buildings.filter(b => b === 'house').length;
-        const powerplantCount = buildings.filter(b => b === 'powerplant').length;
-        const hospitalCount = buildings.filter(b => b === 'hospital').length;
-        const schoolCount = buildings.filter(b => b === 'school').length;
+        const roadCount = buildings.filter(b => getBuildingType(b) === 'road').length;
+        const houseCount = buildings.filter(b => getBuildingType(b) === 'house').length;
+        const powerplantCount = buildings.filter(b => getBuildingType(b) === 'powerplant').length;
+        const hospitalCount = buildings.filter(b => getBuildingType(b) === 'hospital').length;
+        const schoolCount = buildings.filter(b => getBuildingType(b) === 'school').length;
 
         // Veje (1 vej per 20 borgere)
         this.satisfactionFactors.roads = Math.min(100, (roadCount * 20 / Math.max(1, population)) * 100);
@@ -350,7 +350,7 @@ class PopulationManager {
         }
         
         // Tæl antal skoler
-        const schoolCount = Object.values(window.gameState.buildings).filter(b => b === 'school').length;
+        const schoolCount = Object.values(window.gameState.buildings).filter(b => getBuildingType(b) === 'school').length;
         
         // Beregn bonus per borger
         const baseBonus = 1 + (2 * currentTier);

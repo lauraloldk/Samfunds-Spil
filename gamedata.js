@@ -164,11 +164,11 @@ function calculateSocietyScore(gameState) {
     
     // Bonus for opfyldte behov
     const buildings = Object.values(gameState.buildings);
-    const roadCount = buildings.filter(b => b === 'road').length;
-    const houseCount = buildings.filter(b => b === 'house').length;
-    const powerplantCount = buildings.filter(b => b === 'powerplant').length;
-    const hospitalCount = buildings.filter(b => b === 'hospital').length;
-    const schoolCount = buildings.filter(b => b === 'school').length;
+    const roadCount = buildings.filter(b => getBuildingType(b) === 'road').length;
+    const houseCount = buildings.filter(b => getBuildingType(b) === 'house').length;
+    const powerplantCount = buildings.filter(b => getBuildingType(b) === 'powerplant').length;
+    const hospitalCount = buildings.filter(b => getBuildingType(b) === 'hospital').length;
+    const schoolCount = buildings.filter(b => getBuildingType(b) === 'school').length;
     
     // Tjek om grundlæggende behov er opfyldt
     if (roadCount >= gameState.population * CITIZEN_NEEDS.roads.per_capita) {

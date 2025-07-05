@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Buildings Grid System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .test-section h2 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+        
+        .control-panel {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .control-panel button {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .control-panel button:hover {
+            background: #2980b9;
+        }
+        
+        .control-panel button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .info-panel {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        
+        .buildings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+        
+        .building-slot {
+            aspect-ratio: 1;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.8);
+        }
+        
+        .building-slot:hover {
+            border-color: #3498db;
+            background: rgba(255,255,255,0.95);
+            transform: translateY(-2px);
+        }
+        
+        .empty-slot {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            padding: 10px;
+        }
+        
+        .expansion-panel {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+        
+        .expansion-panel h3 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+        
+        .build-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        
+        .build-btn:hover {
+            background: #219a52;
+            transform: translateY(-2px);
+        }
+        
+        .build-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .status-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .status-item h3 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+        
+        .modifier-list {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .modifier-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .modifier-item:last-child {
+            border-bottom: none;
+        }
+        
+        .positive {
+            color: #27ae60;
+        }
+        
+        .negative {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ Buildings Grid System Test</h1>
+        
+        <div class="test-section">
+            <h2>Game State Control</h2>
+            <div class="control-panel">
+                <button onclick="addMoney(5000)">💰 +5000 kr</button>
+                <button onclick="addMoney(50000)">💰 +50000 kr</button>
+                <button onclick="setTier(0)">🔬 Sæt Tier 0</button>
+                <button onclick="setTier(1)">🔬 Sæt Tier 1</button>
+                <button onclick="setTier(2)">🔬 Sæt Tier 2</button>
+                <button onclick="resetGame()">🔄 Reset Game</button>
+                <button onclick="quickFixTier()">🛠️ Quick Fix Tier</button>
+                <button onclick="testPurchaseSlot()">🧪 Test Purchase</button>
+            </div>
+            
+            <div class="info-panel">
+                <div>💰 Penge: <span id="money-display">0</span> kr</div>
+                <div>🏗️ Slots: <span id="slots-display">0</span></div>
+                <div>🔬 Tier: <span id="tier-display">0</span></div>
+                <div>💪 Næste slot pris: <span id="next-price-display">0</span> kr</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Price Modifier Test</h2>
+            <div class="control-panel">
+                <button onclick="addPriceModifier('test_positive', 0.5, 3, 'Test +50% (3 år)')">➕ +50% (3 år)</button>
+                <button onclick="addPriceModifier('test_negative', -0.3, 2, 'Test -30% (2 år)')">➖ -30% (2 år)</button>
+                <button onclick="addPriceModifier('test_permanent', 0.25, null, 'Test +25% (permanent)')">🔒 +25% (permanent)</button>
+                <button onclick="clearModifiers()">🧹 Clear Modifiers</button>
+            </div>
+            
+            <div class="modifier-list" id="modifiers-display">
+                <div>Ingen aktive modifiers</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Buildings Grid</h2>
+            <div class="buildings-grid" id="buildings-grid">
+                <!-- Slots will be generated dynamically -->
+            </div>
+            
+            <div class="expansion-panel" id="expansion-panel">
+                <h3>📐 Byudvidelse</h3>
+                <p>Køb ekstra byggepladser til din by</p>
+                <p id="slots-info" style="font-size: 0.9em; color: #ccc; margin-bottom: 10px;">Loading...</p>
+                <button class="build-btn" onclick="expandCity()" id="expand-btn">
+                    🏗️ Køb byggeplads
+                </button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Event Test</h2>
+            <div class="control-panel">
+                <button onclick="triggerEvent('construction_boom')">🏗️ Byggekrise</button>
+                <button onclick="triggerEvent('government_subsidy')">🏛️ Regeringsstøtte</button>
+                <button onclick="triggerEvent('land_speculation')">💰 Grundspekulation</button>
+                <button onclick="triggerEvent('planning_reform')">📋 Planreform</button>
+                <button onclick="advanceYear()">📅 Næste År</button>
+            </div>
+        </div>
+        
+        <div class="status-display">
+            <div class="status-item">
+                <h3>📊 Grid Statistics</h3>
+                <div id="grid-stats">Loading...</div>
+            </div>
+            
+            <div class="status-item">
+                <h3>📈 Price Calculation</h3>
+                <div id="price-breakdown">Loading...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game scripts -->
+    <script>
+        // Initialize minimal game state
+        window.gameState = {
+            money: 10000,
+            population: 0,
+            happiness: 75,
+            stamina: 10,
+            year: 1930,
+            buildings: {},
+            maxBuildingSlots: 6,
+            purchasedSlots: 0,
+            researchData: {
+                currentTier: 0
+            }
+        };
+        
+        // Mock research system
+        window.researchSystem = {
+            researchData: {
+                currentTier: 0
+            }
+        };
+        
+        // Save/load functions
+        function saveGameData() {
+            localStorage.setItem('buildings-grid-test', JSON.stringify(window.gameState));
+        }
+        
+        function loadGameData() {
+            try {
+                const saved = localStorage.getItem('buildings-grid-test');
+                if (saved) {
+                    window.gameState = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.error('Error loading game data:', e);
+            }
+        }
+        
+        // Load on start
+        loadGameData();
+    </script>
+    
+    <script src="buildings-grid.js"></script>
+    <script src="events.js"></script>
+    
+    <script>
+        // Test functions
+        function addMoney(amount) {
+            window.gameState.money += amount;
+            updateDisplay();
+            saveGameData();
+        }
+        
+        function setTier(tier) {
+            window.gameState.researchData.currentTier = tier;
+            window.researchSystem.researchData.currentTier = tier;
+            
+            // Synkroniser research data
+            if (window.syncResearchData) {
+                window.syncResearchData();
+            }
+            
+            if (window.buildingsGridManager) {
+                window.buildingsGridManager.onTierUpgrade(tier);
+            }
+            
+            console.log('Tier set to:', tier);
+            updateDisplay();
+            saveGameData();
+        }
+        
+        function resetGame() {
+            window.gameState = {
+                money: 10000,
+                population: 0,
+                happiness: 75,
+                stamina: 10,
+                year: 1930,
+                buildings: {},
+                maxBuildingSlots: 6,
+                purchasedSlots: 0,
+                researchData: {
+                    currentTier: 0
+                }
+            };
+            
+            if (window.buildingsGridManager) {
+                window.buildingsGridManager.reset();
+            }
+            
+            updateDisplay();
+            saveGameData();
+        }
+        
+        function addPriceModifier(id, percentage, duration, description) {
+            if (window.buildingsGridManager) {
+                window.buildingsGridManager.addPriceModifier(id, percentage, duration, description);
+                updateDisplay();
+            }
+        }
+        
+        function clearModifiers() {
+            if (window.buildingsGridManager) {
+                window.buildingsGridManager.priceModifiers = [];
+                updateDisplay();
+            }
+        }
+        
+        function triggerEvent(eventId) {
+            if (window.eventManager) {
+                // Find the event
+                const allEvents = [];
+                Object.values(window.eventManager.availableEvents).forEach(tierEvents => {
+                    allEvents.push(...tierEvents);
+                });
+                
+                const event = allEvents.find(e => e.id === eventId);
+                if (event) {
+                    const result = window.eventManager.executeEvent(event);
+                    alert(`Event: ${result.name}\n\n${result.message}`);
+                    updateDisplay();
+                }
+            }
+        }
+        
+        function advanceYear() {
+            window.gameState.year++;
+            
+            if (window.buildingsGridManager) {
+                window.buildingsGridManager.updatePriceModifiers();
+            }
+            
+            updateDisplay();
+            saveGameData();
+        }
+        
+        function updateDisplay() {
+            document.getElementById('money-display').textContent = window.gameState.money.toLocaleString();
+            document.getElementById('slots-display').textContent = window.gameState.maxBuildingSlots;
+            document.getElementById('tier-display').textContent = window.gameState.researchData.currentTier;
+            
+            if (window.buildingsGridManager) {
+                const nextPrice = window.buildingsGridManager.calculateNextSlotPrice();
+                document.getElementById('next-price-display').textContent = nextPrice.toLocaleString();
+                
+                // Update modifiers display
+                const modifiers = window.buildingsGridManager.getActivePriceModifiers();
+                const modifiersDisplay = document.getElementById('modifiers-display');
+                
+                if (modifiers.length === 0) {
+                    modifiersDisplay.innerHTML = '<div>Ingen aktive modifiers</div>';
+                } else {
+                    modifiersDisplay.innerHTML = modifiers.map(mod => {
+                        const percentage = Math.round(mod.percentage * 100);
+                        const sign = percentage > 0 ? '+' : '';
+                        const colorClass = percentage > 0 ? 'negative' : 'positive';
+                        return `<div class="modifier-item">
+                            <span>${mod.description}</span>
+                            <span class="${colorClass}">${sign}${percentage}%</span>
+                        </div>`;
+                    }).join('');
+                }
+                
+                // Update grid stats
+                const stats = window.buildingsGridManager.getGridStatistics();
+                document.getElementById('grid-stats').innerHTML = `
+                    <div>Current Slots: ${stats.currentSlots}</div>
+                    <div>Max for Tier: ${stats.maxSlotsForTier}</div>
+                    <div>Purchased Slots: ${stats.purchasedSlots}</div>
+                    <div>Current Tier: ${stats.currentTier}</div>
+                `;
+                
+                // Update price breakdown
+                const basePrice = window.buildingsGridManager.calculateBasePriceForSlot(window.gameState.purchasedSlots || 0);
+                const finalPrice = window.buildingsGridManager.calculateNextSlotPrice();
+                const totalModifier = modifiers.reduce((sum, mod) => sum + mod.percentage, 0);
+                
+                document.getElementById('price-breakdown').innerHTML = `
+                    <div>Base Price: ${basePrice.toLocaleString()} kr</div>
+                    <div>Total Modifier: ${totalModifier > 0 ? '+' : ''}${Math.round(totalModifier * 100)}%</div>
+                    <div>Final Price: ${finalPrice.toLocaleString()} kr</div>
+                `;
+            }
+        }
+        
+        // Initialize display
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                updateDisplay();
+                setInterval(updateDisplay, 1000);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

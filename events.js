@@ -100,6 +100,106 @@ class EventManager {
                     happiness: () => -(Math.floor(Math.random() * 8) + 2), // -2 til -10 happiness
                     message: (effects) => `En brand har ødelagt ejendom for ${Math.abs(effects.money)} kr.`
                 }
+            },
+            {
+                id: 'construction_boom',
+                name: 'Byggekrise 🏗️',
+                description: 'Høj efterspørgsel på byggegrunde har drevet priserne i vejret.',
+                type: 'negative',
+                weight: 15,
+                cooldown: 8,
+                requirements: {
+                    minPopulation: 100,
+                    minTier: 1
+                },
+                effects: {
+                    message: () => `Byggekrise! Priserne på nye byggepladser er steget med 50% i de næste 3 år.`,
+                    custom: () => {
+                        if (window.buildingsGridManager) {
+                            window.buildingsGridManager.addPriceModifier(
+                                'construction_boom',
+                                0.5, // +50% pris
+                                3, // 3 år
+                                'Byggekrise (+50% slot-pris)'
+                            );
+                        }
+                    }
+                }
+            },
+            {
+                id: 'government_subsidy',
+                name: 'Regeringsstøtte 🏛️',
+                description: 'Regeringen subsidierer byudvikling for at fremme vækst.',
+                type: 'positive',
+                weight: 10,
+                cooldown: 12,
+                requirements: {
+                    minPopulation: 150,
+                    minTier: 1
+                },
+                effects: {
+                    message: () => `Regeringsstøtte! Priserne på nye byggepladser er reduceret med 30% i de næste 5 år.`,
+                    custom: () => {
+                        if (window.buildingsGridManager) {
+                            window.buildingsGridManager.addPriceModifier(
+                                'government_subsidy',
+                                -0.3, // -30% pris
+                                5, // 5 år
+                                'Regeringsstøtte (-30% slot-pris)'
+                            );
+                        }
+                    }
+                }
+            },
+            {
+                id: 'land_speculation',
+                name: 'Grundspekulation 💰',
+                description: 'Spekulanter har købt meget jord og driver priserne op.',
+                type: 'negative',
+                weight: 12,
+                cooldown: 10,
+                requirements: {
+                    minPopulation: 200,
+                    minTier: 1
+                },
+                effects: {
+                    message: () => `Grundspekulation! Priserne på nye byggepladser er steget med 75% i de næste 2 år.`,
+                    custom: () => {
+                        if (window.buildingsGridManager) {
+                            window.buildingsGridManager.addPriceModifier(
+                                'land_speculation',
+                                0.75, // +75% pris
+                                2, // 2 år
+                                'Grundspekulation (+75% slot-pris)'
+                            );
+                        }
+                    }
+                }
+            },
+            {
+                id: 'planning_reform',
+                name: 'Planreform 📋',
+                description: 'En ny planlov gør det billigere at udvide byen.',
+                type: 'positive',
+                weight: 8,
+                cooldown: 15,
+                requirements: {
+                    minPopulation: 250,
+                    minTier: 1
+                },
+                effects: {
+                    message: () => `Planreform! Priserne på nye byggepladser er reduceret med 40% i de næste 4 år.`,
+                    custom: () => {
+                        if (window.buildingsGridManager) {
+                            window.buildingsGridManager.addPriceModifier(
+                                'planning_reform',
+                                -0.4, // -40% pris
+                                4, // 4 år
+                                'Planreform (-40% slot-pris)'
+                            );
+                        }
+                    }
+                }
             }
         ];
         
@@ -150,8 +250,21 @@ class EventManager {
                 return false;
             }
             
+            if (event.requirements.minTier) {
+                let currentTier = 0;
+                if (gameState.researchData && gameState.researchData.currentTier !== undefined) {
+                    currentTier = gameState.researchData.currentTier;
+                } else if (window.researchSystem && window.researchSystem.researchData) {
+                    currentTier = window.researchSystem.researchData.currentTier;
+                }
+                
+                if (currentTier < event.requirements.minTier) {
+                    return false;
+                }
+            }
+            
             if (event.requirements.maxHospitals) {
-                const hospitalCount = Object.values(gameState.buildings).filter(b => b === 'hospital').length;
+                const hospitalCount = Object.values(gameState.buildings).filter(b => getBuildingType(b) === 'hospital').length;
                 if (hospitalCount > event.requirements.maxHospitals) {
                     return false;
                 }
@@ -217,6 +330,11 @@ class EventManager {
         if (event.effects.money) {
             effects.money = event.effects.money();
             gameState.money = Math.max(0, gameState.money + effects.money);
+        }
+        
+        // Håndter custom effects (f.eks. pris-modifiers)
+        if (event.effects.custom) {
+            event.effects.custom();
         }
         
         // Gem i historik
